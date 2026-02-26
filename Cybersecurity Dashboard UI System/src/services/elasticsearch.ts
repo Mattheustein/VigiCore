@@ -88,6 +88,15 @@ export const ElasticsearchService = {
         return Promise.resolve(mockLogs.slice(0, size));
     },
 
+    getAuthStats: async () => {
+        return Promise.resolve({
+            total: mockLogs.length,
+            success: mockLogs.filter(l => l.result === 'Success').length,
+            failed: mockLogs.filter(l => l.result === 'Failed').length,
+            publickey: mockLogs.filter(l => l.method === 'publickey').length,
+        });
+    },
+
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const now = new Date();
         const intervals = 6;

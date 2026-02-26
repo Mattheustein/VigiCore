@@ -14,11 +14,16 @@ export function AuthLogsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterResult, setFilterResult] = useState('all');
   const [authLogs, setAuthLogs] = useState<AuthLog[]>([]);
+  const [stats, setStats] = useState({ total: 0, success: 0, failed: 0, publickey: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
       const logs = await ElasticsearchService.getAuthLogs(100);
       setAuthLogs(logs);
+
+      // Fetch global metrics to stay in-sync with Main Dashboard
+      const glStats = await ElasticsearchService.getAuthStats();
+      setStats(glStats);
     };
 
     fetchData();
@@ -67,7 +72,7 @@ export function AuthLogsPage() {
             </div>
             <div>
               <p className="text-gray-400 text-sm">Total Logs</p>
-              <p className="text-2xl font-bold text-white">{authLogs.length}</p>
+              <p className="text-2xl font-bold text-white">{stats.total}</p>
             </div>
           </div>
         </Card>
@@ -80,7 +85,7 @@ export function AuthLogsPage() {
             <div>
               <p className="text-gray-400 text-sm">Successful</p>
               <p className="text-2xl font-bold text-green-400">
-                {authLogs.filter((l) => l.result === 'Success').length}
+                {stats.success}
               </p>
             </div>
           </div>
@@ -94,7 +99,7 @@ export function AuthLogsPage() {
             <div>
               <p className="text-gray-400 text-sm">Failed</p>
               <p className="text-2xl font-bold text-red-400">
-                {authLogs.filter((l) => l.result === 'Failed').length}
+                {stats.failed}
               </p>
             </div>
           </div>
@@ -108,7 +113,7 @@ export function AuthLogsPage() {
             <div>
               <p className="text-gray-400 text-sm">PublicKey Auth</p>
               <p className="text-2xl font-bold text-purple-400">
-                {authLogs.filter((l) => l.method === 'publickey').length}
+                {stats.publickey}
               </p>
             </div>
           </div>
@@ -187,8 +192,8 @@ export function AuthLogsPage() {
                   <td className="py-3 px-4">
                     <span
                       className={`text-xs px-2 py-1 rounded ${log.method === 'publickey'
-                          ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
-                          : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                        ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                        : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
                         }`}
                     >
                       {log.method}
