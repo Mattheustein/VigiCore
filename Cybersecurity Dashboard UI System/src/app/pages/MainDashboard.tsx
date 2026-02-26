@@ -35,6 +35,7 @@ export function MainDashboard() {
   const [suspiciousIPs, setSuspiciousIPs] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
   const [activeAlertCount, setActiveAlertCount] = useState(0);
+  const [authStats, setAuthStats] = useState({ total: 0, success: 0, failed: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -59,9 +60,8 @@ export function MainDashboard() {
       const sysAlertStats = await ElasticsearchService.getAlertStats();
       setActiveAlertCount(sysAlertStats.active);
 
-      // Calculate total events from timeline
-      const total = authTimeline.reduce((acc, curr) => acc + curr.events, 0);
-      setTotalEvents(total);
+      const globalStats = await ElasticsearchService.getAuthStats();
+      setAuthStats(globalStats);
 
       // Ensure data for pie chart exists (mock if 0 to avoid empty chart)
       const hasLoginData = loginDist.some(d => d.value > 0);
@@ -95,8 +95,8 @@ export function MainDashboard() {
         <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Total Events (24h)</p>
-              <p className="text-3xl font-bold text-white mt-1">{totalEvents}</p>
+              <p className="text-gray-400 text-sm">Total Events</p>
+              <p className="text-3xl font-bold text-white mt-1">{authStats.total}</p>
               <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
                 Live Data
@@ -109,9 +109,9 @@ export function MainDashboard() {
         <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-gray-400 text-sm">Failed Logins (24h)</p>
+              <p className="text-gray-400 text-sm">Failed Logins</p>
               <p className="text-3xl font-bold text-white mt-1">
-                {failedLoginData.reduce((acc, curr) => acc + curr.attempts, 0)}
+                {authStats.failed}
               </p>
               <p className="text-red-400 text-xs mt-1 flex items-center gap-1">
                 <AlertTriangle className="w-3 h-3" />
