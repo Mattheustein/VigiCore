@@ -67,6 +67,28 @@ export function SuspiciousActivityPage() {
     return matchesSearch && matchesFilter;
   });
 
+  const handleExportReport = () => {
+    const headers = ['ID', 'Timestamp', 'Type', 'Source IP', 'Target User', 'Attempts', 'Status', 'Risk', 'Host'];
+    const csvContent = [
+      headers.join(','),
+      ...filteredEvents.map(event =>
+        [event.id, event.timestamp, event.type, event.sourceIp, event.targetUser, event.attempts, event.status, event.risk, event.host].join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    if (link.download !== undefined) {
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `vigicore_suspicious_activity_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -77,9 +99,9 @@ export function SuspiciousActivityPage() {
             Detected brute-force attempts and abnormal authentication patterns
           </p>
         </div>
-        <Button className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
+        <Button onClick={handleExportReport} className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
           <Download className="w-4 h-4 mr-2" />
-          Export Report
+          <span className="whitespace-nowrap">Export Report</span>
         </Button>
       </div>
 
