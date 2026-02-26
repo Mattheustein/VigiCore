@@ -3,18 +3,29 @@ import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { Shield, Lock, Mail } from 'lucide-react';
+import { Shield, Lock, Mail, AlertTriangle } from 'lucide-react';
 import logo from '../../assets/logo-alt.png';
+import { AuthService } from '../../services/auth';
 
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - navigate to dashboard
-    navigate('/dashboard');
+    setError(null);
+
+    // Authenticate with mock database
+    const result = await AuthService.login(email, password);
+
+    if (result.success) {
+      // Mock login - navigate to dashboard
+      navigate('/dashboard');
+    } else {
+      setError(result.error || 'Login failed');
+    }
   };
 
   return (
@@ -53,6 +64,13 @@ export function LoginPage() {
 
           {/* Login Form */}
           <form onSubmit={handleLogin} className="space-y-6">
+            {error && (
+              <div className="p-3 rounded-md bg-red-500/10 border border-red-500/50 text-red-500 text-sm flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4" />
+                {error}
+              </div>
+            )}
+
             <div className="space-y-2">
               <Label htmlFor="email" className="text-gray-300 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
