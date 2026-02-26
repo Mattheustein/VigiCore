@@ -151,7 +151,11 @@ export function DashboardLayout() {
                   className="rounded-full bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] p-0.5"
                 >
                   <div className="bg-[#131825] rounded-full w-full h-full flex items-center justify-center overflow-hidden">
-                    <img src={profilePic} alt="User Profile" className="w-full h-full object-cover" />
+                    {user?.username?.toLowerCase() === 'mattheustein' ? (
+                      <img src={profilePic} alt="User Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <User className="text-[#5B6AC2] w-6 h-6" />
+                    )}
                   </div>
                 </Button>
               </DropdownMenuTrigger>
