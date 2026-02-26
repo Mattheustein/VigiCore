@@ -118,7 +118,9 @@ export function MainDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Blocked IPs</p>
-              <p className="text-3xl font-bold text-white mt-1">47</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {suspiciousIPs.filter(ip => ip.status === 'Blocked').length}
+              </p>
               <p className="text-green-400 text-xs mt-1 flex items-center gap-1">
                 <Shield className="w-3 h-3" />
                 Auto-protected
@@ -132,7 +134,9 @@ export function MainDashboard() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Active Alerts</p>
-              <p className="text-3xl font-bold text-white mt-1">23</p>
+              <p className="text-3xl font-bold text-white mt-1">
+                {suspiciousIPs.filter(ip => ip.risk === 'High').length}
+              </p>
               <p className="text-amber-400 text-xs mt-1">Requires attention</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
