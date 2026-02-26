@@ -175,9 +175,11 @@ export function DashboardLayout() {
                     <span>Edit Profile</span>
                   </Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem className="hover:bg-[#1A1F2E] focus:bg-[#1A1F2E] cursor-pointer">
-                  <Settings className="mr-2 h-4 w-4" />
-                  <span>Preferences</span>
+                <DropdownMenuItem asChild className="hover:bg-[#1A1F2E] focus:bg-[#1A1F2E] cursor-pointer">
+                  <Link to="/dashboard/settings" className="flex items-center">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Preferences</span>
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
                 <DropdownMenuItem
