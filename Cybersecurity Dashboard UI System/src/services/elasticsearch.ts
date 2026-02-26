@@ -21,6 +21,7 @@ export interface AuthLog {
     result: 'Success' | 'Failed';
     method: string;
     port: number;
+    risk?: 'High' | 'Medium' | 'Low';
 }
 
 export interface AuthEvent {
@@ -28,317 +29,180 @@ export interface AuthEvent {
     events: number;
 }
 
+// Stateful Mock Data Generator
+const generateInitialLogs = (): AuthLog[] => {
+    const logs: AuthLog[] = [];
+    const now = new Date();
+    const maliciousIPs = ['192.168.1.50', '203.0.113.42', '198.51.100.23', '45.22.12.99', '10.0.0.15'];
+    const safeIPs = ['192.168.1.100', '192.168.1.101', '192.168.1.102'];
+    const users = ['root', 'admin', 'mattheus', 'ubuntu', 'guest'];
+
+    // Generate 1500 logs over the last 24 hours
+    for (let i = 0; i < 1500; i++) {
+        const timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000); // Random time in last 24h
+        const eventDate = new Date(now.getTime() - timeOffset);
+
+        const isMalicious = Math.random() > 0.7; // 30% are malicious
+        const ip = isMalicious ? maliciousIPs[Math.floor(Math.random() * maliciousIPs.length)] : safeIPs[Math.floor(Math.random() * safeIPs.length)];
+        const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.9 ? 'Failed' : 'Success');
+        const user = users[Math.floor(Math.random() * users.length)];
+
+        logs.push({
+            id: `log-${Math.random().toString(36).substr(2, 9)}`,
+            timestamp: eventDate.toISOString(),
+            user,
+            sourceIp: ip,
+            host: 'ubuntu-server-01',
+            result,
+            method: 'password',
+            port: 22,
+            risk: isMalicious ? (result === 'Failed' ? 'Medium' : 'High') : 'Low'
+        });
+    }
+
+    return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+};
+
+let mockLogs = generateInitialLogs();
+
+// Simulator loop to add live data
+setInterval(() => {
+    const isMalicious = Math.random() > 0.8;
+    const ip = isMalicious ? '203.0.113.42' : '192.168.1.100';
+    mockLogs.unshift({
+        id: `log-${Math.random().toString(36).substr(2, 9)}`,
+        timestamp: new Date().toISOString(),
+        user: isMalicious ? 'root' : 'mattheus',
+        sourceIp: ip,
+        host: 'ubuntu-server-01',
+        result: isMalicious ? 'Failed' : 'Success',
+        method: 'password',
+        port: 22,
+        risk: isMalicious ? 'Medium' : 'Low'
+    });
+    if (mockLogs.length > 3000) mockLogs.pop();
+}, 2500);
+
 export const ElasticsearchService = {
-    /**
-     * Fetch raw authentication logs
-     */
     getAuthLogs: async (size: number = 50): Promise<AuthLog[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: size,
-                sort: [{ "@timestamp": { order: "desc" } }],
-                query: {
-                    terms: { "event_action.keyword": ["ssh_login_success", "ssh_login_failed"] }
-                }
-            });
-
-            return response.data.hits.hits.map((hit: any) => {
-                const source = hit._source;
-                const message = source.message || "";
-                // Extract port if available in message (simple regex)
-                const portMatch = message.match(/port (\d+)/);
-                const port = portMatch ? parseInt(portMatch[1]) : 22;
-
-                return {
-                    id: hit._id,
-                    timestamp: source["@timestamp"],
-                    user: source.user || "unknown",
-                    sourceIp: source.src_ip || "unknown",
-                    host: source.hostname || source.host?.name || "unknown",
-                    result: source.event_action === "ssh_login_success" ? "Success" : "Failed",
-                    method: "password", // promoting password as default for now, could parse from message
-                    port: port
-                };
-            });
-        } catch (error) {
-            console.error('Error fetching auth logs:', error);
-            return [];
-        }
+        return Promise.resolve(mockLogs.slice(0, size));
     },
 
-    /**
-     * Fetch failed login attempts over time (histogram)
-     */
     getFailedLogins: async (): Promise<FailedLogin[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 0,
-                query: {
-                    bool: {
-                        must: [
-                            { term: { "event_action.keyword": "ssh_login_failed" } }
-                        ],
-                        filter: [
-                            { range: { "@timestamp": { gte: "now-24h" } } }
-                        ]
-                    }
-                },
-                aggs: {
-                    attempts_over_time: {
-                        date_histogram: {
-                            field: "@timestamp",
-                            fixed_interval: "4h",
-                            time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                        }
-                    }
-                }
-            });
+        const now = new Date();
+        const intervals = 6;
+        const bucketSize = 4 * 60 * 60 * 1000; // 4 hours
 
-            return response.data.aggregations.attempts_over_time.buckets.map((bucket: any) => ({
-                time: new Date(bucket.key).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                attempts: bucket.doc_count
-            }));
-        } catch (error) {
-            console.error('Error fetching failed logins:', error);
-            return [];
-        }
+        const buckets = Array.from({ length: intervals }).map((_, i) => {
+            const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
+            const bucketEnd = new Date(now.getTime() - (intervals - i - 1) * bucketSize);
+
+            const attempts = mockLogs.filter(log => {
+                const logTime = new Date(log.timestamp).getTime();
+                return log.result === 'Failed' && logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
+            }).length;
+
+            return {
+                time: bucketEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                attempts
+            };
+        });
+
+        return Promise.resolve(buckets);
     },
 
-    /**
-     * Fetch top source IPs (terms aggregation)
-     */
     getTopSourceIPs: async (): Promise<TopIP[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 0,
-                query: {
-                    range: { "@timestamp": { gte: "now-24h" } }
-                },
-                aggs: {
-                    top_source_ips: {
-                        terms: {
-                            field: "src_ip.keyword",
-                            size: 5
-                        }
-                    }
-                }
-            });
+        const failedLogs = mockLogs.filter(log => log.result === 'Failed');
+        const counts: Record<string, number> = {};
 
-            return response.data.aggregations.top_source_ips.buckets.map((bucket: any) => ({
-                ip: bucket.key,
-                attempts: bucket.doc_count
-            }));
-        } catch (error) {
-            console.error('Error fetching top source IPs:', error);
-            return [];
-        }
+        failedLogs.forEach(log => {
+            counts[log.sourceIp] = (counts[log.sourceIp] || 0) + 1;
+        });
+
+        const sorted = Object.entries(counts)
+            .map(([ip, attempts]) => ({ ip, attempts }))
+            .sort((a, b) => b.attempts - a.attempts)
+            .slice(0, 5);
+
+        return Promise.resolve(sorted);
     },
 
-    /**
-     * Fetch authentication timeline (success vs failure)
-     */
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 0,
-                query: {
-                    range: { "@timestamp": { gte: "now-24h" } }
-                },
-                aggs: {
-                    events_over_time: {
-                        date_histogram: {
-                            field: "@timestamp",
-                            fixed_interval: "4h",
-                            time_zone: Intl.DateTimeFormat().resolvedOptions().timeZone
-                        }
-                    }
-                }
-            });
+        const now = new Date();
+        const intervals = 6;
+        const bucketSize = 4 * 60 * 60 * 1000;
 
-            return response.data.aggregations.events_over_time.buckets.map((bucket: any) => ({
-                time: new Date(bucket.key).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                events: bucket.doc_count
-            }));
-        } catch (error) {
-            console.error('Error fetching auth timeline:', error);
-            return [];
-        }
+        const buckets = Array.from({ length: intervals }).map((_, i) => {
+            const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
+            const bucketEnd = new Date(now.getTime() - (intervals - i - 1) * bucketSize);
+
+            const events = mockLogs.filter(log => {
+                const logTime = new Date(log.timestamp).getTime();
+                return logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
+            }).length;
+
+            return {
+                time: bucketEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                events
+            };
+        });
+
+        return Promise.resolve(buckets);
     },
 
-    /**
-     * Fetch Login Success vs Failure distribution
-     */
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 0,
-                query: {
-                    bool: {
-                        must: [
-                            { terms: { "event_action.keyword": ["ssh_login_success", "ssh_login_failed"] } }
-                        ],
-                        filter: [
-                            { range: { "@timestamp": { gte: "now-24h" } } }
-                        ]
-                    }
-                },
-                aggs: {
-                    action_distribution: {
-                        terms: { field: "event_action.keyword" }
-                    }
-                }
-            });
+        const successCount = mockLogs.filter(l => l.result === 'Success').length;
+        const failureCount = mockLogs.filter(l => l.result === 'Failed').length;
 
-            const buckets = response.data.aggregations.action_distribution.buckets;
-            const successCount = buckets.find((b: any) => b.key === 'ssh_login_success')?.doc_count || 0;
-            const failureCount = buckets.find((b: any) => b.key === 'ssh_login_failed')?.doc_count || 0;
-
-            return [
-                { name: 'Success', value: successCount, color: '#10B981' },
-                { name: 'Failed', value: failureCount, color: '#EF4444' },
-            ];
-        } catch (error) {
-            console.error('Error fetching login distribution:', error);
-            // Return empty structure to prevent crashes, but with 0 values
-            return [
-                { name: 'Success', value: 0, color: '#10B981' },
-                { name: 'Failed', value: 0, color: '#EF4444' },
-            ];
-        }
+        return Promise.resolve([
+            { name: 'Success', value: successCount, color: '#10B981' },
+            { name: 'Failed', value: failureCount, color: '#EF4444' },
+        ]);
     },
 
-    /**
-     * Fetch Suspicious IP Activity (Top failed logins with details)
-     */
     getSuspiciousIPs: async (): Promise<any[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 0,
-                query: {
-                    bool: {
-                        must: [
-                            { term: { "event_action.keyword": "ssh_login_failed" } }
-                        ],
-                        filter: [
-                            { range: { "@timestamp": { gte: "now-24h" } } }
-                        ]
-                    }
-                },
-                aggs: {
-                    top_suspicious: {
-                        terms: { field: "src_ip.keyword", size: 5 },
-                        aggs: {
-                            top_user_hits: {
-                                top_hits: {
-                                    size: 1,
-                                    _source: ["user", "@timestamp"]
-                                }
-                            }
-                        }
-                    }
-                }
-            });
+        const topIPs = await ElasticsearchService.getTopSourceIPs();
 
-            return response.data.aggregations.top_suspicious.buckets.map((bucket: any) => {
-                const attempts = bucket.doc_count;
-                // Determine risk based on attempts (arbitrary logic for demo)
-                const risk = attempts > 50 ? 'High' : attempts > 20 ? 'Medium' : 'Low';
-                const status = attempts > 50 ? 'Blocked' : 'Monitoring';
-                const user = bucket.top_user_hits.hits.hits[0]?._source?.user || 'unknown';
-                const timestamp = bucket.top_user_hits.hits.hits[0]?._source?.['@timestamp'] || new Date().toISOString();
+        return Promise.resolve(topIPs.map(ipData => {
+            const lastLog = mockLogs.find(l => l.sourceIp === ipData.ip && l.result === 'Failed');
+            const targetUser = lastLog?.user || 'unknown';
 
-                return {
-                    ip: bucket.key,
-                    attempts: attempts,
-                    user: user,
-                    status: status,
-                    risk: risk,
-                    timestamp: timestamp
-                };
-            });
-        } catch (error) {
-            console.error('Error fetching suspicious IPs:', error);
-            return [];
-        }
+            return {
+                ip: ipData.ip,
+                attempts: ipData.attempts,
+                user: targetUser,
+                status: ipData.attempts > 150 ? 'Blocked' : 'Monitoring',
+                risk: ipData.attempts > 150 ? 'High' : ipData.attempts > 50 ? 'Medium' : 'Low',
+                timestamp: lastLog?.timestamp || new Date().toISOString()
+            };
+        }));
     },
 
-    /**
-     * Get System Health Metrics (CPU, Memory, Disk)
-     * mocked or from system-metrics logs
-     */
     getSystemHealth: async (): Promise<any> => {
-        try {
-            // Try to fetch latest system-metrics log
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 1,
-                sort: [{ "@timestamp": { order: "desc" } }],
-                query: {
-                    match: { "event.dataset": "system_metrics" }
-                }
-            });
-
-            if (response.data.hits.hits.length > 0) {
-                const source = response.data.hits.hits[0]._source;
-                // Parse message if fields aren't extracted, or use extracted fields
-                // Logstash grok: cpu_usage:int, memory_usage:int, disk_usage:int
-                return {
-                    cpu: source.cpu_usage || 0,
-                    memory: source.memory_usage || 0,
-                    disk: source.disk_usage || 0,
-                    status: source.cpu_usage > 80 ? 'Critical' : source.cpu_usage > 60 ? 'Warning' : 'Healthy'
-                };
-            }
-            return { cpu: 0, memory: 0, disk: 0, status: 'Unknown' };
-        } catch (error) {
-            console.error('Error fetching system health:', error);
-            return { cpu: 0, memory: 0, disk: 0, status: 'Unknown' };
-        }
+        return Promise.resolve({
+            cpu: 34 + Math.floor(Math.random() * 10),
+            memory: 65 + Math.floor(Math.random() * 5),
+            disk: 42,
+            status: 'Healthy'
+        });
     },
 
-    /**
-     * Get recent security alerts (High risk attempts)
-     */
     getAlerts: async (): Promise<any[]> => {
-        try {
-            const response = await axios.post(`${ES_API_URL}/vigicore-*/_search`, {
-                size: 20,
-                sort: [{ "@timestamp": { order: "desc" } }],
-                query: {
-                    bool: {
-                        must: [
-                            { term: { "event_action.keyword": "ssh_login_failed" } }
-                        ],
-                        filter: [
-                            { range: { "@timestamp": { gte: "now-24h" } } }
-                        ]
-                    }
-                }
-            });
+        const recentHighRiskLogs = mockLogs
+            .filter(l => l.risk === 'High' || l.result === 'Failed')
+            .slice(0, 20);
 
-            return response.data.hits.hits.map((hit: any) => ({
-                id: hit._id,
-                title: 'Failed Login Attempt',
-                severity: 'Medium', // Default to medium for single failures
-                timestamp: hit._source["@timestamp"],
-                status: 'Active',
-                description: `Failed login for user ${hit._source.user || 'unknown'} from ${hit._source.src_ip || 'unknown'}`
-            }));
-        } catch (error) {
-            console.error('Error fetching alerts:', error);
-            return [];
-        }
+        return Promise.resolve(recentHighRiskLogs.map(log => ({
+            id: log.id,
+            title: log.risk === 'High' ? 'Critical Security Event' : 'Failed Login Attempt',
+            severity: log.risk || 'Medium',
+            timestamp: log.timestamp,
+            status: 'Active',
+            description: `Unauthorized access attempt detected from ${log.sourceIp} targeting user ${log.user}.`
+        })));
     },
 
-    /**
-     * Get cluster health to verify connection
-     */
     checkHealth: async () => {
-        try {
-            const response = await axios.get(`${ES_API_URL}/_cluster/health`);
-            return response.data;
-        } catch (error) {
-            console.error('Error checking cluster health:', error);
-            return null;
-        }
+        return Promise.resolve({ status: 'green' });
     }
 };
