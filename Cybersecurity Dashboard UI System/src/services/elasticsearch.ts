@@ -243,27 +243,41 @@ export const ElasticsearchService = {
     },
 
     getSystemHealth: async (): Promise<any> => {
+        const time = Date.now();
+        const baseCpu = 40 + Math.sin(time / 8000) * 20; // Smooth sine wave pattern
+        const cpu = Math.max(0, Math.min(100, baseCpu + (Math.random() * 8 - 4))); // With slight jitter
+
+        const memory = 68 + Math.sin(time / 30000) * 4 + (Math.random() * 2 - 1);
+        const disk = 42.4 + (Math.random() * 0.2);
+
         return Promise.resolve({
-            cpu: 34 + Math.floor(Math.random() * 10),
-            memory: 65 + Math.floor(Math.random() * 5),
-            disk: 42,
-            status: 'Healthy'
+            cpu: Math.floor(cpu),
+            memory: Math.floor(memory),
+            disk: disk.toFixed(1),
+            status: cpu > 85 ? 'Critical' : cpu > 70 ? 'Warning' : 'Healthy'
         });
     },
 
     getAlerts: async (): Promise<any[]> => {
         const recentHighRiskLogs = mockLogs
             .filter(l => l.risk === 'High' || l.result === 'Failed')
-            .slice(0, 20);
+            .slice(0, 24);
 
-        return Promise.resolve(recentHighRiskLogs.map(log => ({
-            id: log.id,
-            title: log.risk === 'High' ? 'Critical Security Event' : 'Failed Login Attempt',
-            severity: log.risk || 'Medium',
-            timestamp: log.timestamp,
-            status: 'Active',
-            description: `Unauthorized access attempt detected from ${log.sourceIp} targeting user ${log.user}.`
-        })));
+        return Promise.resolve(recentHighRiskLogs.map((log, index) => {
+            // Generate visually diverse statuses for the demo
+            let status = 'Active';
+            if (index % 4 === 0) status = 'Resolved';
+            else if (index % 3 === 0) status = 'Monitoring';
+
+            return {
+                id: log.id,
+                title: log.risk === 'High' ? 'Critical Security Event' : 'Failed Login Attempt',
+                severity: log.risk || 'Medium',
+                timestamp: log.timestamp,
+                status: status,
+                description: `Unauthorized access attempt detected from ${log.sourceIp} targeting user ${log.user}.`
+            };
+        }));
     },
 
     checkHealth: async () => {
