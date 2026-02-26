@@ -97,11 +97,13 @@ export function DashboardLayout() {
       >
         {/* Logo */}
         <div className="h-20 flex items-center justify-center border-b border-[#5B6AC2]/20 p-4">
-          {sidebarOpen ? (
-            <img src={logo} alt="VigiCore" className="h-12 w-auto object-contain transition-all duration-300" />
-          ) : (
-            <img src={logoIcon} alt="VigiCore" className="h-8 w-auto object-contain" />
-          )}
+          <Link to="/dashboard" className="flex items-center justify-center h-full w-full focus:outline-none">
+            {sidebarOpen ? (
+              <img src={logo} alt="VigiCore" className="h-12 w-auto object-contain transition-all duration-300" />
+            ) : (
+              <img src={logoIcon} alt="VigiCore" className="h-8 w-auto object-contain" />
+            )}
+          </Link>
         </div>
 
         {/* Navigation */}
