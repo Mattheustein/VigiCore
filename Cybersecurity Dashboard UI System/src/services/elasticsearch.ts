@@ -178,6 +178,47 @@ export const ElasticsearchService = {
         }));
     },
 
+    getIPIntelligence: async (): Promise<any[]> => {
+        const suspiciousIPs = await ElasticsearchService.getSuspiciousIPs();
+
+        // Generate mock locations and threats for top IPs
+        const ipIntelligenceDatabase: Record<string, any> = {
+            '192.168.1.50': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+            '203.0.113.42': { country: 'Russia', city: 'Moscow', coordinates: [37.6173, 55.7558] },
+            '198.51.100.23': { country: 'China', city: 'Beijing', coordinates: [116.4074, 39.9042] },
+            '45.22.12.99': { country: 'USA', city: 'New York', coordinates: [-74.0060, 40.7128] },
+            '10.0.0.15': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+            '192.168.1.100': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+            '192.168.1.101': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+            '192.168.1.102': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+        };
+
+        return suspiciousIPs.map((item, index) => {
+            const data = ipIntelligenceDatabase[item.ip] || { country: 'Unknown', city: 'Unknown', coordinates: [0, 0] };
+
+            // Randomly assign some to real locations if they aren't in the DB to make the map look busy
+            const backupCoords = [
+                [-0.1276, 51.5072], // London
+                [2.3522, 48.8566], // Paris
+                [139.6917, 35.6895], // Tokyo
+                [13.4050, 52.5200], // Berlin
+                [-43.1729, -22.9068], // Rio
+            ];
+            const coords = data.coordinates[0] === 0 ? backupCoords[index % backupCoords.length] : data.coordinates;
+            const country = data.country === 'Unknown' ? ['UK', 'France', 'Japan', 'Germany', 'Brazil'][index % 5] : data.country;
+            const city = data.city === 'Internal Net' ? ['London', 'Paris', 'Tokyo', 'Berlin', 'Rio de Janeiro'][index % 5] : data.city;
+
+            return {
+                ...item,
+                country: country,
+                city: city,
+                coordinates: coords,
+                threats: Math.floor(item.attempts / 10) + 1,
+                reputation: item.risk === 'High' ? 'High Risk' : item.risk === 'Medium' ? 'Medium Risk' : 'Low Risk'
+            };
+        });
+    },
+
     getSystemHealth: async (): Promise<any> => {
         return Promise.resolve({
             cpu: 34 + Math.floor(Math.random() * 10),

@@ -2,7 +2,8 @@
 
 # VigiCore UI Startup Script
 
-UI_DIR="/home/ubuntu/VigiCore/Cybersecurity Dashboard UI System"
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+UI_DIR="$DIR/Cybersecurity Dashboard UI System"
 
 echo "Starting VigiCore UI..."
 
