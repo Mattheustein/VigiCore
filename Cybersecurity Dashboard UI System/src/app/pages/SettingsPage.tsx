@@ -278,15 +278,97 @@ export function SettingsPage() {
             </Card>
           )}
 
-          {/* DATA SOURCES CONFIG Placeholder */}
+          {/* DATA SOURCES CONFIG */}
           {activeTab === 'DataSources' && (
-            <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Database className="w-5 h-5 text-[#E91E63]" />
-                Data Sources Configuration
-              </h3>
-              <p className="text-gray-400 text-sm">Configure Elasticsearch, Logstash, and internal sensor feeds here.</p>
-            </Card>
+            <div className="space-y-6">
+              {/* Database Connection */}
+              <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Database className="w-5 h-5 text-[#E91E63]" />
+                  Primary Database (ELK Stack)
+                </h3>
+                <div className="space-y-4 max-w-lg">
+                  <div className="space-y-2">
+                    <Label className="text-white">Elasticsearch Node URL</Label>
+                    <Input defaultValue="https://es-node-01.internal:9200" className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white font-mono text-sm" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">API Key / Auth Token</Label>
+                    <Input type="password" defaultValue="*************************" className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white" />
+                  </div>
+                  <div className="pt-2">
+                    <Button className="bg-[#1A1F2E] border border-[#5B6AC2]/50 text-[#5B6AC2] hover:bg-[#5B6AC2] hover:text-white transition-colors">
+                      Test Connection
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Threat Feeds */}
+              <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                  <Shield className="w-5 h-5 text-[#FF6B35]" />
+                  External Threat Intelligence Feeds
+                </h3>
+                <p className="text-sm text-gray-400 mb-4">Integrate third-party services to enrich IP intelligence capabilities.</p>
+                <div className="space-y-4 max-w-lg">
+                  <div className="space-y-2">
+                    <Label className="text-white">VirusTotal API Key</Label>
+                    <Input type="password" placeholder="Enter VirusTotal key..." className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-white">AbuseIPDB API Key</Label>
+                    <Input type="password" placeholder="Enter AbuseIPDB key..." defaultValue="abip_8x92je210..." className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white" />
+                  </div>
+                </div>
+              </Card>
+
+              {/* Log Ingestion & Retention */}
+              <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Log Ingestion</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-white">Logstash Listener Port</Label>
+                        <Input defaultValue="5044" className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white font-mono" />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-white">Syslog Forwarding</Label>
+                        <Input defaultValue="udp://0.0.0.0:514" className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white font-mono" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Data Retention Policies</h3>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-white">Auth Logs Retention</Label>
+                        <select className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
+                          <option value="30">30 Days</option>
+                          <option value="90" selected>90 Days</option>
+                          <option value="365">1 Year</option>
+                        </select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-white">System Metrics Retention</Label>
+                        <select className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
+                          <option value="7">7 Days</option>
+                          <option value="14" selected>14 Days</option>
+                          <option value="30">30 Days</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+
+              <div className="flex justify-end mt-6">
+                <Button className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
+                  Save Integrations
+                </Button>
+              </div>
+            </div>
           )}
 
         </div>
