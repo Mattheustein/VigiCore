@@ -1,0 +1,10 @@
+# VigiCore Kibana Configuration
+
+server.port: 5601
+server.host: "localhost"
+
+# Connect to Elasticsearch
+elasticsearch.hosts: ["http://localhost:9200"]
+
+# Logging
+# logging.dest: stdout

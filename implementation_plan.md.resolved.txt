@@ -1,0 +1,76 @@
+# VigiCore Implementation Plan
+
+This plan outlines the technical execution for building the VigiCore IDS system, focusing on the automated bash-based deployment and configuration of the ELK stack.
+
+# User Review Required
+> [!IMPORTANT]
+> **Prerequisites**: The automation scripts assume a standard Ubuntu environment with `sudo` access.
+> **Resource Usage**: The ELK stack is resource-intensive. Ensure the target machine has at least 4GB RAM.
+
+## Proposed Changes
+
+### Automation Layer
+#### [NEW] [setup.sh](file:///home/ubuntu/VigiCore/setup.sh)
+- Master script to orchestrate the installation.
+- Handles logging and error checking.
+
+#### [NEW] [automation/01_prerequisites.sh](file:///home/ubuntu/VigiCore/automation/01_prerequisites.sh)
+- Installs basic dependencies (`curl`, `wget`, `gnupg`, `apt-transport-https`).
+- Checks for Java (installing OpenJDK if missing).
+
+#### [NEW] [automation/02_repository.sh](file:///home/ubuntu/VigiCore/automation/02_repository.sh)
+- Adds Elastic GPG key and APT repository.
+
+#### [NEW] [automation/03_install_components.sh](file:///home/ubuntu/VigiCore/automation/03_install_components.sh)
+- `apt-get install` for elasticsearch, kibana, logstash, filebeat.
+
+#### [NEW] [automation/04_configure.sh](file:///home/ubuntu/VigiCore/automation/04_configure.sh)
+- Backs up default configs.
+- Copies project configs to `/etc/`.
+- Sets permissions.
+
+### Configuration Layer
+#### [NEW] [elasticsearch/elasticsearch.yml](file:///home/ubuntu/VigiCore/elasticsearch/elasticsearch.yml)
+- Single-node configuration (`discovery.type: single-node`).
+- Network binding (`network.host: localhost`).
+
+#### [NEW] [kibana/kibana.yml](file:///home/ubuntu/VigiCore/kibana/kibana.yml)
+- Server port and elasticsearch host connection.
+
+#### [NEW] [filebeat/filebeat.yml](file:///home/ubuntu/VigiCore/filebeat/filebeat.yml)
+- Input: `/var/log/auth.log`, `/var/log/syslog`.
+- Output: Logstash (`localhost:5044`).
+
+#### [NEW] [logstash/02-beats-input.conf](file:///home/ubuntu/VigiCore/logstash/02-beats-input.conf)
+- Input plugin configuration.
+
+#### [NEW] [logstash/10-syslog-filter.conf](file:///home/ubuntu/VigiCore/logstash/10-syslog-filter.conf)
+- Grok patterns for syslog and auth logs.
+- Date parsing.
+
+#### [NEW] [logstash/30-elasticsearch-output.conf](file:///home/ubuntu/VigiCore/logstash/30-elasticsearch-output.conf)
+- Output to Elasticsearch with daily indices.
+
+## Verification Plan
+
+### Automated Tests
+- **Service Status Details**: check if services are active/running.
+    ```bash
+    systemctl status elasticsearch kibana logstash filebeat
+    ```
+- **Port Availability**: Verify listening ports (9200, 5601, 5044).
+    ```bash
+    ss -tulpn | grep -E '9200|5601|5044'
+    ```
+- **API Health Check**:
+    ```bash
+    curl -X GET "localhost:9200/_cluster/health?pretty"
+    ```
+
+### Manual Verification
+- **Log Flow**:
+    1.  Generate a failed SSH login: `ssh fakeuser@localhost`.
+    2.  Check Filebeat logs for harvesting.
+    3.  Check Logstash logs for processing.
+    4.  Query Elasticsearch to confirm document indexing.
+    5.  Verify data appears in Kibana Discover.

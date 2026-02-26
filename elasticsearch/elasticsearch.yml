@@ -1,0 +1,18 @@
+# VigiCore Elasticsearch Configuration
+
+cluster.name: vigicore-cluster
+node.name: vigicore-node-1
+
+# Single-node discovery
+discovery.type: single-node
+
+# Network settings
+network.host: localhost
+http.port: 9200
+
+# Path settings (using default is fine, but good to be explicit if needed)
+path.data: /var/lib/elasticsearch
+path.logs: /var/log/elasticsearch
+
+# Memory settings are usually in jvm.options, but we stick to defaults here.
+xpack.security.enabled: false  # For simplicity in local dev/demo, can enable later

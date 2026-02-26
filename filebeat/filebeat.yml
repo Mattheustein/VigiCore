@@ -1,0 +1,36 @@
+# VigiCore Filebeat Configuration
+
+filebeat.inputs:
+- type: filestream
+  id: vigicore-syslog
+  enabled: true
+  paths:
+    - /var/log/syslog
+  fields:
+    log_type: syslog
+
+- type: filestream
+  id: vigicore-auth
+  enabled: true
+  paths:
+    - /var/log/auth.log
+  fields:
+    log_type: auth
+
+filebeat.config.modules:
+  path: ${path.config}/modules.d/*.yml
+  reload.enabled: false
+
+setup.template.settings:
+  index.number_of_shards: 1
+
+# Output to Logstash
+output.logstash:
+  hosts: ["localhost:5044"]
+
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - add_kubernetes_metadata: ~
