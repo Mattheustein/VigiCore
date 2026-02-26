@@ -34,6 +34,7 @@ export function MainDashboard() {
   const [successFailureData, setSuccessFailureData] = useState<{ name: string; value: number; color: string }[]>([]);
   const [suspiciousIPs, setSuspiciousIPs] = useState<any[]>([]);
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [activeAlertCount, setActiveAlertCount] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -54,6 +55,9 @@ export function MainDashboard() {
 
       const sysAlerts = await ElasticsearchService.getAlerts();
       setAlerts(sysAlerts);
+
+      const sysAlertStats = await ElasticsearchService.getAlertStats();
+      setActiveAlertCount(sysAlertStats.active);
 
       // Calculate total events from timeline
       const total = authTimeline.reduce((acc, curr) => acc + curr.events, 0);
@@ -139,7 +143,7 @@ export function MainDashboard() {
             <div>
               <p className="text-gray-400 text-sm">Active Alerts</p>
               <p className="text-3xl font-bold text-white mt-1">
-                {alerts.filter(a => a.status === 'Active').length}
+                {activeAlertCount}
               </p>
               <p className="text-amber-400 text-xs mt-1">Requires attention</p>
             </div>

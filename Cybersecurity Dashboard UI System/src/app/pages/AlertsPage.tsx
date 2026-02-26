@@ -7,11 +7,14 @@ import { ElasticsearchService } from '../../services/elasticsearch';
 
 export function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
+  const [stats, setStats] = useState({ total: 0, active: 0, monitoring: 0, resolved: 0 });
 
   useEffect(() => {
     const fetchAlerts = async () => {
       const data = await ElasticsearchService.getAlerts();
       setAlerts(data);
+      const metrics = await ElasticsearchService.getAlertStats();
+      setStats(metrics);
     };
 
     fetchAlerts();
@@ -39,7 +42,7 @@ export function AlertsPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-400 text-sm">Total Alerts</p>
-              <p className="text-3xl font-bold text-white mt-1">{alerts.length}</p>
+              <p className="text-3xl font-bold text-white mt-1">{stats.total}</p>
             </div>
             <Bell className="w-10 h-10 text-[#5B6AC2] opacity-50" />
           </div>
@@ -50,7 +53,7 @@ export function AlertsPage() {
             <div>
               <p className="text-gray-400 text-sm">Active</p>
               <p className="text-3xl font-bold text-red-400 mt-1">
-                {alerts.filter(a => a.status === 'Active').length}
+                {stats.active}
               </p>
             </div>
             <AlertTriangle className="w-10 h-10 text-red-400 opacity-50" />
@@ -62,7 +65,7 @@ export function AlertsPage() {
             <div>
               <p className="text-gray-400 text-sm">Monitoring</p>
               <p className="text-3xl font-bold text-amber-400 mt-1">
-                {alerts.filter(a => a.status === 'Monitoring').length}
+                {stats.monitoring}
               </p>
             </div>
             <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -76,7 +79,7 @@ export function AlertsPage() {
             <div>
               <p className="text-gray-400 text-sm">Resolved</p>
               <p className="text-3xl font-bold text-green-400 mt-1">
-                {alerts.filter(a => a.status === 'Resolved').length}
+                {stats.resolved}
               </p>
             </div>
             <CheckCircle className="w-10 h-10 text-green-400 opacity-50" />
@@ -90,8 +93,8 @@ export function AlertsPage() {
           <Card key={alert.id} className="bg-[#131825] border-[#5B6AC2]/20 p-6 hover:border-[#5B6AC2]/40 transition-all">
             <div className="flex items-start gap-4">
               <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${alert.status === 'Active' ? 'bg-red-500/10' :
-                  alert.status === 'Monitoring' ? 'bg-amber-500/10' :
-                    'bg-green-500/10'
+                alert.status === 'Monitoring' ? 'bg-amber-500/10' :
+                  'bg-green-500/10'
                 }`}>
                 {alert.status === 'Active' ? (
                   <XCircle className="w-6 h-6 text-red-400" />
@@ -116,8 +119,8 @@ export function AlertsPage() {
                     {new Date(alert.timestamp).toLocaleString()}
                   </span>
                   <span className={`text-xs px-2 py-1 rounded ${alert.status === 'Active' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
-                      alert.status === 'Monitoring' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
-                        'bg-green-500/10 text-green-400 border border-green-500/30'
+                    alert.status === 'Monitoring' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30' :
+                      'bg-green-500/10 text-green-400 border border-green-500/30'
                     }`}>
                     {alert.status}
                   </span>

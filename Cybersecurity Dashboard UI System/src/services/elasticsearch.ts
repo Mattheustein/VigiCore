@@ -258,6 +258,25 @@ export const ElasticsearchService = {
         });
     },
 
+    getAlertStats: async (): Promise<any> => {
+        const fullAlerts = mockLogs.filter(l => l.risk === 'High' || l.result === 'Failed');
+        let active = 0, monitoring = 0, resolved = 0;
+
+        // Match the same logic assignment mapping used in getAlerts for consistency
+        fullAlerts.forEach((_, index) => {
+            if (index % 4 === 0) resolved++;
+            else if (index % 3 === 0) monitoring++;
+            else active++;
+        });
+
+        return Promise.resolve({
+            total: fullAlerts.length,
+            active,
+            monitoring,
+            resolved
+        });
+    },
+
     getAlerts: async (): Promise<any[]> => {
         const recentHighRiskLogs = mockLogs
             .filter(l => l.risk === 'High' || l.result === 'Failed')
