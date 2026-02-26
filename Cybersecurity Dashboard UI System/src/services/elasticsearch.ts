@@ -97,6 +97,20 @@ export const ElasticsearchService = {
         });
     },
 
+    searchLogs: async (query: string): Promise<AuthLog[]> => {
+        await new Promise(resolve => setTimeout(resolve, 300));
+        if (!query.trim()) return [];
+        const q = query.toLowerCase();
+
+        const results = mockLogs.filter(log =>
+            log.sourceIp.includes(q) ||
+            log.user.toLowerCase().includes(q) ||
+            log.result.toLowerCase().includes(q) ||
+            log.risk?.toLowerCase().includes(q)
+        );
+        return results.reverse().slice(0, 10);
+    },
+
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const now = new Date();
         const intervals = 6;

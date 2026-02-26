@@ -26,6 +26,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { AuthService } from '../../services/auth';
+import { ElasticsearchService, AuthLog } from '../../services/elasticsearch';
 import profilePic from '../../assets/profile-pic.png';
 import logo from '../../assets/logo-alt.png';
 import logoIcon from '../../assets/logo-icon.png';
@@ -35,6 +36,33 @@ export function DashboardLayout() {
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [user, setUser] = useState<any>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<AuthLog[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleSearch = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        setSearchOpen(false);
+        setIsSearching(false);
+        return;
+      }
+
+      setIsSearching(true);
+      setSearchOpen(true);
+      const results = await ElasticsearchService.searchLogs(searchQuery);
+      setSearchResults(results);
+      setIsSearching(false);
+    };
+
+    const timer = setTimeout(() => {
+      handleSearch();
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   useEffect(() => {
     const fetchUser = () => {
@@ -114,12 +142,53 @@ export function DashboardLayout() {
             </Button>
 
             {/* Search */}
-            <div className="relative w-96">
+            <div className="relative w-96 z-50">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 placeholder="Search logs, IPs, events..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onBlur={() => setTimeout(() => setSearchOpen(false), 200)}
+                onFocus={() => { if (searchQuery.trim()) setSearchOpen(true); }}
                 className="pl-10 bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white placeholder:text-gray-500"
               />
+
+              {/* Search Dropdown Modal */}
+              {searchOpen && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-[#131825] border border-[#5B6AC2]/30 rounded-lg shadow-xl shadow-[#0A0E1A] overflow-hidden">
+                  {isSearching ? (
+                    <div className="p-4 text-center text-gray-400 text-sm">Searching...</div>
+                  ) : searchResults.length > 0 ? (
+                    <div className="max-h-96 overflow-y-auto custom-scrollbar">
+                      <div className="p-2 space-y-1">
+                        {searchResults.map((log) => (
+                          <div
+                            key={log.id}
+                            className="p-3 bg-[#1A1F2E]/50 hover:bg-[#1A1F2E] border border-transparent hover:border-[#5B6AC2]/20 rounded-md transition-colors cursor-pointer"
+                            onClick={() => {
+                              setSearchQuery('');
+                              setSearchOpen(false);
+                              navigate('/dashboard/suspicious-activity'); // Could route to specific detail page eventually
+                            }}
+                          >
+                            <div className="flex justify-between items-start mb-1">
+                              <span className="text-white text-sm font-medium">{log.user} <span className="text-gray-500">at</span> {log.sourceIp}</span>
+                              <span className={`text-xs px-2 py-0.5 rounded ${log.result === 'Failed' ? 'bg-red-500/10 text-red-400' : 'bg-green-500/10 text-green-400'}`}>
+                                {log.result}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-400 font-mono">
+                              {new Date(log.timestamp).toLocaleString()} • {log.risk} Risk
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-gray-400 text-sm">No results found for "{searchQuery}"</div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
