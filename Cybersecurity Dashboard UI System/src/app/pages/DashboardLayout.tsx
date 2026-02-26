@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation } from 'react-router';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import {
   LayoutDashboard,
   FileText,
@@ -11,18 +11,44 @@ import {
   User,
   Menu,
   Shield,
+  LogOut,
 } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 import { Input } from '../components/ui/input';
 import { Button } from '../components/ui/button';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../components/ui/dropdown-menu';
+import { AuthService } from '../../services/auth';
 import profilePic from '../../assets/profile-pic.png';
 import logo from '../../assets/logo-alt.png';
 import logoIcon from '../../assets/logo-icon.png';
 
 export function DashboardLayout() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = () => {
+      setUser(AuthService.getCurrentUser());
+    };
+    fetchUser();
+    window.addEventListener('authChange', fetchUser);
+    return () => window.removeEventListener('authChange', fetchUser);
+  }, []);
+
+  const handleLogout = () => {
+    AuthService.logout();
+    navigate('/');
+  };
 
   const navItems = [
     { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -117,15 +143,48 @@ export function DashboardLayout() {
             </div>
 
             {/* User Profile */}
-            <Button
-              variant="ghost"
-              size="icon"
-              className="rounded-full bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] p-0.5"
-            >
-              <div className="bg-[#131825] rounded-full w-full h-full flex items-center justify-center overflow-hidden">
-                <img src={profilePic} alt="User Profile" className="w-full h-full object-cover" />
-              </div>
-            </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-full bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] p-0.5"
+                >
+                  <div className="bg-[#131825] rounded-full w-full h-full flex items-center justify-center overflow-hidden">
+                    <img src={profilePic} alt="User Profile" className="w-full h-full object-cover" />
+                  </div>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-white shadow-xl shadow-[#0A0E1A]" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">{user?.fullName || user?.username || 'Guest'}</p>
+                    <p className="text-xs leading-none text-gray-400 font-mono">
+                      {user?.role || 'User'}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
+                <DropdownMenuItem asChild className="hover:bg-[#1A1F2E] focus:bg-[#1A1F2E] cursor-pointer">
+                  <Link to="/dashboard/settings" className="flex items-center">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Edit Profile</span>
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="hover:bg-[#1A1F2E] focus:bg-[#1A1F2E] cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Preferences</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
+                <DropdownMenuItem
+                  onClick={handleLogout}
+                  className="text-red-400 focus:text-red-300 hover:bg-red-500/10 focus:bg-red-500/10 cursor-pointer"
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
