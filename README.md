@@ -1,4 +1,4 @@
-# VigiCore IDS
+# VigiCore IDS (Graduation Project)
 
 **VigiCore** is a log-based Intrusion Detection System (IDS) designed for local Ubuntu deployment. It leverages the **ELK Stack** (Filebeat, Logstash, Elasticsearch, Kibana) to collect, process, and visualize system and authentication logs, detecting suspicious activities through defined rule-based logic.
 
