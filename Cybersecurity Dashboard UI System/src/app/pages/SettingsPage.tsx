@@ -3,7 +3,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Switch } from '../components/ui/switch';
-import { Settings, Shield, Bell, Database, Users, User as UserIcon, Plus, Trash2 } from 'lucide-react';
+import { Settings, Shield, Bell, Database, Users, User as UserIcon, Plus, Trash2, Pencil, Check, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AuthService } from '../../services/auth';
 
@@ -13,6 +13,8 @@ export function SettingsPage() {
   const [profileData, setProfileData] = useState({ fullName: '', username: '', password: '' });
   const [usersList, setUsersList] = useState<any[]>([]);
   const [newUser, setNewUser] = useState({ fullName: '', username: '', password: '', role: 'Analyst' });
+  const [editingUser, setEditingUser] = useState<string | null>(null);
+  const [editUserData, setEditUserData] = useState({ fullName: '', role: 'Analyst', password: '' });
 
   useEffect(() => {
     const fetchUser = () => {
@@ -57,6 +59,31 @@ export function SettingsPage() {
     setUsersList(users);
   };
 
+  const handleStartEditUser = (user: any) => {
+    setEditingUser(user.username);
+    setEditUserData({ fullName: user.fullName || '', role: user.role, password: '' });
+  };
+
+  const handleSaveEditUser = async (username: string) => {
+    const updatePayload: any = { username, fullName: editUserData.fullName, role: editUserData.role };
+    if (editUserData.password) updatePayload.password = editUserData.password;
+
+    const users = AuthService.getUsers();
+    const index = users.findIndex((u: any) => u.username === username);
+    if (index > -1) {
+      users[index] = { ...users[index], ...updatePayload };
+      AuthService.saveUsers(users);
+      setUsersList(users);
+
+      if (currentUser.username === username) {
+        const { password: _, ...sessionInfo } = users[index];
+        localStorage.setItem('currentUser', JSON.stringify(sessionInfo));
+        window.dispatchEvent(new Event('authChange'));
+      }
+    }
+    setEditingUser(null);
+  };
+
   const tabs = [
     { id: 'Profile', icon: UserIcon, label: 'Edit Profile' },
     { id: 'Security', icon: Shield, label: 'Security' },
@@ -86,8 +113,8 @@ export function SettingsPage() {
                 key={item.id}
                 onClick={() => setActiveTab(item.id)}
                 className={`p-4 cursor-pointer transition-all ${isActive
-                    ? 'bg-gradient-to-r from-[#5B6AC2]/20 to-[#E91E63]/10 border-[#5B6AC2]/30'
-                    : 'bg-[#131825] border-[#5B6AC2]/20 hover:border-[#5B6AC2]/40'
+                  ? 'bg-gradient-to-r from-[#5B6AC2]/20 to-[#E91E63]/10 border-[#5B6AC2]/30'
+                  : 'bg-[#131825] border-[#5B6AC2]/20 hover:border-[#5B6AC2]/40'
                   }`}
               >
                 <div className="flex items-center gap-3">
@@ -181,15 +208,49 @@ export function SettingsPage() {
                   <div className="space-y-3">
                     {usersList.map(u => (
                       <div key={u.username} className="flex items-center justify-between p-3 rounded-lg bg-[#1A1F2E]/30 border border-[#5B6AC2]/10">
-                        <div>
-                          <p className="text-white font-medium text-sm">{u.fullName || u.username}</p>
-                          <p className="text-gray-400 text-xs">@{u.username} • {u.role}</p>
-                        </div>
-                        {u.username !== currentUser.username && (
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.username)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                        {editingUser === u.username ? (
+                          <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-2 mr-4">
+                            <Input placeholder="Full Name" value={editUserData.fullName} onChange={e => setEditUserData({ ...editUserData, fullName: e.target.value })} className="bg-[#131825] border-[#5B6AC2]/30 text-white h-8 text-sm" />
+                            <Input type="password" placeholder="New Password (optional)" value={editUserData.password} onChange={e => setEditUserData({ ...editUserData, password: e.target.value })} className="bg-[#131825] border-[#5B6AC2]/30 text-white h-8 text-sm" />
+                            <select
+                              className="bg-[#131825] border border-[#5B6AC2]/30 text-white rounded-md px-2 h-8 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]"
+                              value={editUserData.role}
+                              onChange={e => setEditUserData({ ...editUserData, role: e.target.value })}
+                            >
+                              <option value="Analyst">Analyst</option>
+                              <option value="Administrator">Administrator</option>
+                              <option value="Super Admin">Super Admin</option>
+                            </select>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-white font-medium text-sm">{u.fullName || u.username}</p>
+                            <p className="text-gray-400 text-xs">@{u.username} • {u.role}</p>
+                          </div>
                         )}
+                        <div className="flex items-center gap-1">
+                          {editingUser === u.username ? (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => handleSaveEditUser(u.username)} className="text-green-400 hover:text-green-300 hover:bg-green-500/10">
+                                <Check className="w-4 h-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => setEditingUser(null)} className="text-gray-400 hover:text-white hover:bg-white/10">
+                                <X className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <Button variant="ghost" size="icon" onClick={() => handleStartEditUser(u)} className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10">
+                                <Pencil className="w-4 h-4" />
+                              </Button>
+                              {u.username !== currentUser.username && (
+                                <Button variant="ghost" size="icon" onClick={() => handleDeleteUser(u.username)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10">
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
                       </div>
                     ))}
                   </div>

@@ -6,7 +6,7 @@ export const AuthService = {
                     username: 'Mattheustein',
                     password: 'Matt123',
                     role: 'Super Admin',
-                    fullName: 'Mattheus Stein'
+                    fullName: 'Mahmoud Sultan'
                 },
                 {
                     username: 'Admin',
