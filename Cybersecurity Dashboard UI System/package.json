@@ -46,6 +46,7 @@
     "d3-geo": "^3.1.1",
     "date-fns": "3.6.0",
     "embla-carousel-react": "8.6.0",
+    "firebase": "^12.10.0",
     "input-otp": "1.4.2",
     "lucide-react": "0.487.0",
     "motion": "12.23.24",
@@ -63,10 +64,7 @@
     "recharts": "2.15.2",
     "sonner": "2.0.3",
     "tailwind-merge": "3.2.0",
-    "tw-animate-css": "1.3.8",
-    "yjs": "^13.6.14",
-    "y-webrtc": "^13.2.1",
-    "y-indexeddb": "^9.0.12"
+    "tw-animate-css": "1.3.8"
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.1.12",

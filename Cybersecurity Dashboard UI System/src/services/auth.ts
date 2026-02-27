@@ -1,103 +1,134 @@
-export const AuthService = {
-    initDB: () => {
-        try {
-            const existing = localStorage.getItem('usersDatabase');
-            if (!existing || existing === '[]') {
-                const initialUsers = [
-                    {
-                        username: 'Mattheustein',
-                        password: 'Matt123',
-                        role: 'Super Admin',
-                        fullName: 'Mahmoud Sultan'
-                    },
-                    {
-                        username: 'Admin',
-                        password: 'Admin123',
-                        role: 'Administrator',
-                        fullName: 'System Admin'
-                    }
-                ];
-                localStorage.setItem('usersDatabase', JSON.stringify(initialUsers));
-            } else {
-                // Verify it can parse
-                JSON.parse(existing);
-            }
-        } catch (e) {
-            console.error("Failed to read/write users DB", e);
-        }
-    },
+import { initializeApp, getApp, getApps } from "firebase/app";
+import {
+    getAuth,
+    signInWithEmailAndPassword,
+    createUserWithEmailAndPassword,
+    signOut,
+    updateProfile,
+    onAuthStateChanged
+} from "firebase/auth";
 
+const firebaseConfig = {
+    apiKey: "AIzaSyCXFs_pE63H5uk_o2oM7gvfD5TdckP5G7g",
+    authDomain: "vigicore-03.firebaseapp.com",
+    projectId: "vigicore-03",
+    storageBucket: "vigicore-03.firebasestorage.app",
+    messagingSenderId: "18230410176",
+    appId: "1:18230410176:web:33bd30d15ca6ae59072625",
+    measurementId: "G-2R4TK28LGE"
+};
+
+// Main App & Auth
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// Secondary App for User Creation (prevents Admin logout)
+const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+const secondaryAuth = getAuth(secondaryApp);
+
+let currentUser: any = JSON.parse(localStorage.getItem('currentUser') || 'null');
+
+onAuthStateChanged(auth, (user) => {
+    if (user) {
+        const displayName = user.displayName || user.email || '';
+        const roleMatch = displayName.match(/\[(.*?)\]$/);
+        const role = roleMatch ? roleMatch[1] : (user.email === 'mattheustein@vigicore.local' ? 'Super Admin' : 'Analyst');
+        const fullName = displayName.replace(/\s*\[.*?\]$/, '');
+
+        currentUser = {
+            username: user.email?.replace('@vigicore.local', ''),
+            fullName: fullName || user.email?.split('@')[0],
+            role: role
+        };
+        localStorage.setItem('currentUser', JSON.stringify(currentUser));
+    } else {
+        currentUser = null;
+        localStorage.removeItem('currentUser');
+    }
+    window.dispatchEvent(new Event('authChange'));
+});
+
+export const AuthService = {
+    initDB: () => { },
     getUsers: () => {
-        AuthService.initDB();
+        // We can't list all users natively from pure client SDK securely.
+        // For dashboard mock UI purposes, we'll return a cached list from local storage or display the logged in user as the only known "database".
+        // A true user list requires a Firebase Admin/Cloud Functions or Firestore collection. Let's return local mock just so UI doesn't crash:
         try {
-            return JSON.parse(localStorage.getItem('usersDatabase') || '[]');
+            return JSON.parse(localStorage.getItem('localUsersMockList') || '[]');
         } catch (e) {
             return [];
         }
     },
-
     saveUsers: (users: any[]) => {
-        localStorage.setItem('usersDatabase', JSON.stringify(users));
+        localStorage.setItem('localUsersMockList', JSON.stringify(users));
     },
 
     login: async (username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        AuthService.initDB();
-
-        const usersDatabase = AuthService.getUsers();
-        const user = usersDatabase.find(
-            (u: any) => (u.username.toLowerCase() === username.toLowerCase()) && u.password === password
-        );
-
-        if (user) {
-            const { password: _, ...userInfo } = user;
-            localStorage.setItem('currentUser', JSON.stringify(userInfo));
-            window.dispatchEvent(new Event('authChange'));
-            return { success: true, user: userInfo };
+        try {
+            const email = username.includes('@') ? username.toLowerCase() : `${username.toLowerCase()}@vigicore.local`;
+            await signInWithEmailAndPassword(auth, email, password);
+            return { success: true, user: currentUser };
+        } catch (error: any) {
+            console.error(error);
+            return { success: false, error: 'Invalid username or password' };
         }
-
-        return { success: false, error: 'Invalid username or password' };
     },
 
     logout: () => {
-        localStorage.removeItem('currentUser');
-        window.dispatchEvent(new Event('authChange'));
+        signOut(auth);
     },
 
     getCurrentUser: () => {
-        const userStr = localStorage.getItem('currentUser');
-        return userStr ? JSON.parse(userStr) : null;
+        return currentUser || JSON.parse(localStorage.getItem('currentUser') || 'null');
     },
 
     addUser: async (newUser: any): Promise<{ success: boolean; error?: string }> => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const users = AuthService.getUsers();
-        if (users.find((u: any) => u.username.toLowerCase() === newUser.username.toLowerCase())) {
-            return { success: false, error: 'Username already exists' };
+        try {
+            const email = newUser.username.includes('@') ? newUser.username.toLowerCase() : `${newUser.username.toLowerCase()}@vigicore.local`;
+            const role = newUser.role || 'Analyst';
+
+            // Create user on secondary instance to avoid booting the active admin
+            const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, newUser.password);
+
+            // Assign name and role to profile displayName using a bracket hack for storage
+            await updateProfile(userCredential.user, {
+                displayName: `${newUser.fullName || newUser.username} [${role}]`
+            });
+            await signOut(secondaryAuth);
+
+            // Keep the local ui list updated for view purpose
+            const users = AuthService.getUsers();
+            if (!users.find((u: any) => u.username === newUser.username)) {
+                users.push(newUser);
+                AuthService.saveUsers(users);
+            }
+
+            return { success: true };
+        } catch (error: any) {
+            console.error(error);
+            return { success: false, error: 'Error creating user: ' + error.message };
         }
-        users.push({ ...newUser, role: newUser.role || 'Analyst' });
-        AuthService.saveUsers(users);
-        return { success: true };
     },
 
     updateProfile: async (updatedUser: any): Promise<{ success: boolean; error?: string }> => {
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const users = AuthService.getUsers();
-        const index = users.findIndex((u: any) => u.username === updatedUser.username);
-        if (index > -1) {
-            const currentUser = users[index];
-            users[index] = { ...currentUser, ...updatedUser };
-            AuthService.saveUsers(users);
+        try {
+            if (auth.currentUser) {
+                const role = updatedUser.role || currentUser?.role || 'Analyst';
+                await updateProfile(auth.currentUser, {
+                    displayName: `${updatedUser.fullName || updatedUser.username} [${role}]`
+                });
 
-            // Update session if it's the current user
-            const sessionObj = AuthService.getCurrentUser();
-            if (sessionObj && sessionObj.username === updatedUser.username) {
-                const { password: _, ...sessionInfo } = users[index];
-                localStorage.setItem('currentUser', JSON.stringify(sessionInfo));
+                // Update local storage representation
+                currentUser = { ...currentUser, ...updatedUser };
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 window.dispatchEvent(new Event('authChange'));
+
+                return { success: true };
             }
-            return { success: true };
+            return { success: false, error: 'No user signed in' };
+        } catch (error: any) {
+            return { success: false, error: error.message };
         }
-        return { success: false, error: 'User not found' };
     }
 };
