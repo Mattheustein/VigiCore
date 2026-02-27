@@ -1,27 +1,39 @@
 export const AuthService = {
     initDB: () => {
-        if (!localStorage.getItem('usersDatabase')) {
-            const initialUsers = [
-                {
-                    username: 'Mattheustein',
-                    password: 'Matt123',
-                    role: 'Super Admin',
-                    fullName: 'Mahmoud Sultan'
-                },
-                {
-                    username: 'Admin',
-                    password: 'Admin123',
-                    role: 'Administrator',
-                    fullName: 'System Admin'
-                }
-            ];
-            localStorage.setItem('usersDatabase', JSON.stringify(initialUsers));
+        try {
+            const existing = localStorage.getItem('usersDatabase');
+            if (!existing || existing === '[]') {
+                const initialUsers = [
+                    {
+                        username: 'Mattheustein',
+                        password: 'Matt123',
+                        role: 'Super Admin',
+                        fullName: 'Mahmoud Sultan'
+                    },
+                    {
+                        username: 'Admin',
+                        password: 'Admin123',
+                        role: 'Administrator',
+                        fullName: 'System Admin'
+                    }
+                ];
+                localStorage.setItem('usersDatabase', JSON.stringify(initialUsers));
+            } else {
+                // Verify it can parse
+                JSON.parse(existing);
+            }
+        } catch (e) {
+            console.error("Failed to read/write users DB", e);
         }
     },
 
     getUsers: () => {
         AuthService.initDB();
-        return JSON.parse(localStorage.getItem('usersDatabase') || '[]');
+        try {
+            return JSON.parse(localStorage.getItem('usersDatabase') || '[]');
+        } catch (e) {
+            return [];
+        }
     },
 
     saveUsers: (users: any[]) => {
