@@ -145,45 +145,6 @@ const initFirestoreLogs = async () => {
 
 initFirestoreLogs();
 
-// Simulator loop to add live data to Firestore (acts as the unified backend driver)
-// It only produces traffic on devices that enable it, to prevent write spam.
-// We auto-enable if we are the primary tab open (basic local locking mechanism for demonstration).
-setInterval(() => {
-    // Basic leader election via localStorage lock 10s
-    const lastLeader = localStorage.getItem('vigicore_simulator_leader_time');
-    const now = Date.now();
-    if (!lastLeader || now - parseInt(lastLeader) >= 10000) {
-        localStorage.setItem('vigicore_simulator_leader_time', now.toString());
-    }
-    
-    // Only the leader device writes random logs
-    if (now - parseInt(localStorage.getItem('vigicore_simulator_leader_time') || '0') < 2000) {
-        const isMalicious = Math.random() > 0.6;
-        const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
-        const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.95 ? 'Failed' : 'Success');
-        const user = getRandomItem(users);
-        const method = getRandomItem(methods);
-        const host = getRandomItem(hosts);
-        const port = getRandomItem(ports);
-
-        let risk: 'Low' | 'Medium' | 'High' = 'Low';
-        if (isMalicious && result === 'Success') risk = 'High';
-        else if (isMalicious && result === 'Failed') risk = 'Medium';
-        else if (!isMalicious && result === 'Failed') risk = 'Low';
-
-        addDoc(LOGS_COL, {
-            timestamp: new Date().toISOString(),
-            user,
-            sourceIp: ip,
-            host,
-            result,
-            method,
-            port,
-            risk
-        }).catch(console.error);
-    }
-}, 4000);
-
 
 let currentTimeFilter = 'All time';
 
