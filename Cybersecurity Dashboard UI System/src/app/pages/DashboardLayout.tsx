@@ -93,16 +93,16 @@ export function DashboardLayout() {
       {/* Sidebar */}
       <aside
         style={{ backgroundColor: '#131825' }}
-        className={`fixed left-0 top-0 h-full border-r border-[#5B6AC2]/20 transition-all duration-300 z-[100] ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
+        className={`fixed left-0 top-0 h-full border-r border-[#5B6AC2]/20 transition-all duration-300 z-[999] ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
           }`}
       >
         {/* Logo */}
         <div className="h-20 flex items-center justify-center border-b border-[#5B6AC2]/20 p-4">
           <Link to="/dashboard" className="flex items-center justify-center h-full w-full focus:outline-none">
             {sidebarOpen ? (
-              <img src={logo} alt="VigiCore" className="h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] transition-all duration-300" />
+              <img src={logo} alt="VigiCore" className="h-10 w-auto object-contain drop-shadow-[0_0_12px_rgba(91,106,194,0.6)] transition-all duration-300" />
             ) : (
-              <img src={logoIcon} alt="VigiCore" className="h-8 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
+              <img src={logoIcon} alt="VigiCore" className="h-8 w-auto object-contain drop-shadow-[0_0_12px_rgba(91,106,194,0.6)]" />
             )}
           </Link>
         </div>
@@ -133,7 +133,7 @@ export function DashboardLayout() {
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden cursor-pointer pointer-events-auto"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998] md:hidden cursor-pointer"
           onClick={() => setSidebarOpen(false)}
         />
       )}
