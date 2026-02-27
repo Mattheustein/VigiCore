@@ -92,20 +92,17 @@ export function DashboardLayout() {
     <div className="min-h-screen w-full overflow-x-hidden bg-[#0A0E1A] dark">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-[#131825] border-r border-[#5B6AC2]/20 transition-all duration-300 z-50 ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
+        style={{ backgroundColor: '#131825' }}
+        className={`fixed left-0 top-0 h-full border-r border-[#5B6AC2]/20 transition-all duration-300 z-[100] ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
           }`}
       >
         {/* Logo */}
         <div className="h-20 flex items-center justify-center border-b border-[#5B6AC2]/20 p-4">
-          <Link to="/dashboard" className="flex items-center justify-center h-full w-full focus:outline-none group">
+          <Link to="/dashboard" className="flex items-center justify-center h-full w-full focus:outline-none">
             {sidebarOpen ? (
-              <div className="bg-white/95 px-4 py-2 rounded-xl shadow-[0_0_15px_rgba(91,106,194,0.3)] transition-all duration-300 group-hover:scale-105 group-hover:bg-white flex items-center justify-center w-full max-w-[200px]">
-                <img src={logo} alt="VigiCore" className="h-8 lg:h-10 w-auto object-contain" />
-              </div>
+              <img src={logo} alt="VigiCore" className="h-10 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)] transition-all duration-300" />
             ) : (
-              <div className="bg-white/95 p-2 rounded-xl shadow-[0_0_10px_rgba(91,106,194,0.3)] transition-all duration-300 group-hover:scale-105 group-hover:bg-white flex items-center justify-center">
-                <img src={logoIcon} alt="VigiCore" className="h-6 w-auto object-contain" />
-              </div>
+              <img src={logoIcon} alt="VigiCore" className="h-8 w-auto object-contain drop-shadow-[0_0_8px_rgba(255,255,255,0.2)]" />
             )}
           </Link>
         </div>
@@ -136,7 +133,7 @@ export function DashboardLayout() {
       {/* Overlay for mobile sidebar */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden cursor-pointer pointer-events-auto"
           onClick={() => setSidebarOpen(false)}
         />
       )}
@@ -156,7 +153,7 @@ export function DashboardLayout() {
             </Button>
 
             {/* Search */}
-            <div className="relative w-full max-w-[150px] sm:max-w-[200px] md:max-w-96 z-30">
+            <div className="relative w-full max-w-[150px] sm:max-w-[200px] md:max-w-96 z-[40]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 placeholder="Search logs, IPs, events..."
