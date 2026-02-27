@@ -156,7 +156,7 @@ export function DashboardLayout() {
             </Button>
 
             {/* Search */}
-            <div className="relative w-full max-w-[150px] sm:max-w-[200px] md:max-w-96 z-50">
+            <div className="relative w-full max-w-[150px] sm:max-w-[200px] md:max-w-96 z-30">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 placeholder="Search logs, IPs, events..."
