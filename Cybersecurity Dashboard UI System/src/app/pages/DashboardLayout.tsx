@@ -89,7 +89,7 @@ export function DashboardLayout() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0E1A] dark">
+    <div className="min-h-screen w-full overflow-x-hidden bg-[#0A0E1A] dark">
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-0 h-full bg-[#131825] border-r border-[#5B6AC2]/20 transition-all duration-300 z-50 ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
@@ -137,8 +137,8 @@ export function DashboardLayout() {
         />
       )}
 
-      {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-0 md:ml-64' : 'ml-0 md:ml-20'}`}>
+      {/* Main Content (Block element automatically fills space minus margin) */}
+      <div className={`transition-all duration-300 flex flex-col min-h-screen ${sidebarOpen ? 'ml-0 md:ml-64' : 'ml-0 md:ml-20'}`}>
         {/* Top Bar */}
         <header className="h-20 bg-[#131825] border-b border-[#5B6AC2]/20 px-4 md:px-6 flex items-center justify-between">
           <div className="flex items-center gap-2 md:gap-4 flex-1">
