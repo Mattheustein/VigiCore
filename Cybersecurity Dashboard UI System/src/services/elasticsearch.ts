@@ -109,17 +109,52 @@ setInterval(() => {
     }
 }, 2500);
 
+
+let currentTimeFilter = 'All time';
+
+export const setGlobalTimeFilter = (filter: string) => {
+    currentTimeFilter = filter;
+    window.dispatchEvent(new Event('timeFilterChange'));
+};
+
+export const getGlobalTimeFilter = () => currentTimeFilter;
+
+const getFilteredLogs = (): AuthLog[] => {
+    if (currentTimeFilter === 'All time') return mockLogs;
+    const now = Date.now();
+    const thresholds: Record<string, number> = {
+        'Last hour': 60 * 60 * 1000,
+        'Today': 24 * 60 * 60 * 1000,
+        'This week': 7 * 24 * 60 * 60 * 1000,
+        'This month': 30 * 24 * 60 * 60 * 1000,
+        'This quarter': 90 * 24 * 60 * 60 * 1000,
+        'This year': 365 * 24 * 60 * 60 * 1000,
+    };
+    
+    if (currentTimeFilter === 'Today') {
+        const startOfToday = new Date();
+        startOfToday.setHours(0,0,0,0);
+        return mockLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
+    }
+    
+    const threshold = thresholds[currentTimeFilter];
+    if (threshold) {
+        return mockLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
+    }
+    return mockLogs;
+};
+
 export const ElasticsearchService = {
     getAuthLogs: async (size: number = 50): Promise<AuthLog[]> => {
-        return Promise.resolve(mockLogs.slice(0, size));
+        return Promise.resolve(getFilteredLogs().slice(0, size));
     },
 
     getAuthStats: async () => {
         return Promise.resolve({
-            total: mockLogs.length,
-            success: mockLogs.filter(l => l.result === 'Success').length,
-            failed: mockLogs.filter(l => l.result === 'Failed').length,
-            publickey: mockLogs.filter(l => l.method === 'publickey').length,
+            total: getFilteredLogs().length,
+            success: getFilteredLogs().filter(l => l.result === 'Success').length,
+            failed: getFilteredLogs().filter(l => l.result === 'Failed').length,
+            publickey: getFilteredLogs().filter(l => l.method === 'publickey').length,
         });
     },
 
@@ -128,7 +163,7 @@ export const ElasticsearchService = {
         if (!query.trim()) return [];
         const q = query.toLowerCase();
 
-        const results = mockLogs.filter(log =>
+        const results = getFilteredLogs().filter(log =>
             log.sourceIp.includes(q) ||
             log.user.toLowerCase().includes(q) ||
             log.result.toLowerCase().includes(q) ||
@@ -146,7 +181,7 @@ export const ElasticsearchService = {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
             const bucketEnd = new Date(now.getTime() - (intervals - i - 1) * bucketSize);
 
-            const attempts = mockLogs.filter(log => {
+            const attempts = getFilteredLogs().filter(log => {
                 const logTime = new Date(log.timestamp).getTime();
                 return log.result === 'Failed' && logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
             }).length;
@@ -161,7 +196,7 @@ export const ElasticsearchService = {
     },
 
     getTopSourceIPs: async (): Promise<TopIP[]> => {
-        const failedLogs = mockLogs.filter(log => log.result === 'Failed');
+        const failedLogs = getFilteredLogs().filter(log => log.result === 'Failed');
         const counts: Record<string, number> = {};
 
         failedLogs.forEach(log => {
@@ -185,7 +220,7 @@ export const ElasticsearchService = {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
             const bucketEnd = new Date(now.getTime() - (intervals - i - 1) * bucketSize);
 
-            const events = mockLogs.filter(log => {
+            const events = getFilteredLogs().filter(log => {
                 const logTime = new Date(log.timestamp).getTime();
                 return logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
             }).length;
@@ -200,8 +235,8 @@ export const ElasticsearchService = {
     },
 
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
-        const successCount = mockLogs.filter(l => l.result === 'Success').length;
-        const failureCount = mockLogs.filter(l => l.result === 'Failed').length;
+        const successCount = getFilteredLogs().filter(l => l.result === 'Success').length;
+        const failureCount = getFilteredLogs().filter(l => l.result === 'Failed').length;
 
         return Promise.resolve([
             { name: 'Success', value: successCount, color: '#10B981' },
@@ -213,7 +248,7 @@ export const ElasticsearchService = {
         const topIPs = await ElasticsearchService.getTopSourceIPs();
 
         return Promise.resolve(topIPs.map(ipData => {
-            const lastLog = mockLogs.find(l => l.sourceIp === ipData.ip && l.result === 'Failed');
+            const lastLog = getFilteredLogs().find(l => l.sourceIp === ipData.ip && l.result === 'Failed');
             const targetUser = lastLog?.user || 'unknown';
 
             return {
@@ -285,7 +320,7 @@ export const ElasticsearchService = {
     },
 
     getAlertStats: async (): Promise<any> => {
-        const fullAlerts = mockLogs.filter(l => l.risk === 'High' || l.result === 'Failed');
+        const fullAlerts = getFilteredLogs().filter(l => l.risk === 'High' || l.result === 'Failed');
         let active = 0, monitoring = 0, resolved = 0;
 
         // Match the same logic assignment mapping used in getAlerts for consistency
@@ -304,7 +339,7 @@ export const ElasticsearchService = {
     },
 
     getAlerts: async (): Promise<any[]> => {
-        const recentHighRiskLogs = mockLogs
+        const recentHighRiskLogs = getFilteredLogs()
             .filter(l => l.risk === 'High' || l.result === 'Failed')
             .slice(0, 24);
 

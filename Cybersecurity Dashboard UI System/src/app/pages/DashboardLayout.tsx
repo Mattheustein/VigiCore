@@ -12,6 +12,8 @@ import {
   Menu,
   Shield,
   LogOut,
+  Clock,
+  ChevronDown,
 } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 import { Input } from '../components/ui/input';
@@ -26,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { AuthService } from '../../services/auth';
-import { ElasticsearchService, AuthLog } from '../../services/elasticsearch';
+import { ElasticsearchService, AuthLog, setGlobalTimeFilter, getGlobalTimeFilter } from '../../services/elasticsearch';
 import profilePic from '../../assets/profile-pic.png';
 import logo from '../../assets/logo-alt.png';
 import logoIcon from '../../assets/logo-icon.png';
@@ -40,6 +42,12 @@ export function DashboardLayout() {
   const [searchResults, setSearchResults] = useState<AuthLog[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [timeFilter, setTimeFilterState] = useState(getGlobalTimeFilter());
+
+  const handleFilterChange = (filter: string) => {
+    setTimeFilterState(filter);
+    setGlobalTimeFilter(filter);
+  };
 
   useEffect(() => {
     const handleSearch = async () => {
@@ -209,6 +217,24 @@ export function DashboardLayout() {
               <StatusBadge status="secure" label="System Secure" />
             </div>
 
+            {/* Time Filter */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E]">
+                  <Clock className="w-3.5 h-3.5 mr-2" />
+                  {timeFilter}
+                  <ChevronDown className="w-3.5 h-3.5 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+                {['Last hour', 'Today', 'This week', 'This month', 'This quarter', 'This year', 'All time'].map(filter => (
+                  <DropdownMenuItem key={filter} onClick={() => handleFilterChange(filter)} className="hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E]">
+                    {filter}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Date/Time - hidden on mobile */}
             <div className="hidden md:block text-sm text-gray-400">
               {new Date().toLocaleDateString('en-US', {
@@ -278,7 +304,7 @@ export function DashboardLayout() {
 
         {/* Page Content */}
         <main className="p-4 md:p-6 overflow-x-hidden">
-          <Outlet />
+          <Outlet key={timeFilter} />
         </main>
       </div>
     </div>
