@@ -4,5 +4,13 @@
     "private": true,
     "scripts": {
         "build": "cd \"Cybersecurity Dashboard UI System\" && npm install && npm run build && cd .. && rm -rf public && cp -r \"Cybersecurity Dashboard UI System/dist\" public"
-    }
+    },
+    "description": "**VigiCore** is a log-based Intrusion Detection System (IDS) designed for local Ubuntu deployment. It leverages the **ELK Stack** (Filebeat, Logstash, Elasticsearch, Kibana) to collect, process, and visualize system and authentication logs, detecting suspicious activities through defined rule-based logic.",
+    "main": "index.js",
+    "directories": {
+        "doc": "docs"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC"
 }
