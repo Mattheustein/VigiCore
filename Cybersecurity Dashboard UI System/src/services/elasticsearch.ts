@@ -142,7 +142,6 @@ setInterval(() => {
     }
 }, 4000);
 
-
 let currentTimeFilter = 'All time';
 
 export const setGlobalTimeFilter = (filter: string) => {
@@ -395,3 +394,4 @@ export const ElasticsearchService = {
         return Promise.resolve({ status: 'green' });
     }
 };
+
