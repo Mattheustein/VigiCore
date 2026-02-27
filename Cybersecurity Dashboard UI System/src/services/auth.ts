@@ -19,8 +19,8 @@ const firebaseConfig = {
 };
 
 // Main App & Auth
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
+export const app = initializeApp(firebaseConfig);
+export const auth = getAuth(app);
 
 // Secondary App for User Creation (prevents Admin logout)
 const secondaryApp = initializeApp(firebaseConfig, "Secondary");
