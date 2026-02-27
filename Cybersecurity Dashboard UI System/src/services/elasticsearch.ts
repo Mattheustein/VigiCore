@@ -35,33 +35,65 @@ const LOGS_COL = collection(db, 'authLogs');
 
 let mockLogs: AuthLog[] = [];
 
+// Shared Mock Entities for Variety
+const maliciousIPs = [
+    '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11', 
+    '220.191.50.80', '5.188.87.52', '185.20.10.15', '31.14.88.2', 
+    '45.144.200.11', '193.106.191.13', '181.214.206.51', '118.193.31.22',
+    '34.122.50.77', '18.220.11.192', '51.15.20.25', '178.128.99.200',
+    '159.65.11.45', '82.165.20.11'
+];
+const safeIPs = [
+    '192.168.1.100', '192.168.1.101', '192.168.1.102', '192.168.1.103',
+    '10.0.0.50', '10.0.0.51', '10.0.1.20', '172.16.0.15', '192.168.2.10',
+    '203.0.113.1', '127.0.0.1', '192.168.1.250'
+];
+const users = ['root', 'admin', 'mattheus', 'ubuntu', 'guest', 'oracle', 'mysql', 'postgres', 'test', 'sysadmin', 'jenkins', 'git', 'deploy', 'backup', 'nobody', 'ftp', 'nagios'];
+const methods = ['password', 'publickey', 'keyboard-interactive', 'gssapi-with-mic', 'none', 'hostbased'];
+const hosts = ['ubuntu-server-01', 'db-production-01', 'web-frontend-02', 'api-gateway', 'payment-processor', 'jenkins-ci-runner', 'backup-server', 'dev-environment', 'redis-cache-01', 'loadbalancer-01'];
+const ports = [22, 2222, 21, 23, 80, 443, 3389, 8080, 5432, 3306, 6379, 27017, 1433, 1521, 5900];
+
+const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
+
 // Stateful Mock Data Generator
 const generateInitialLogs = (count: number = 300): AuthLog[] => {
     const logs: AuthLog[] = [];
     const now = new Date();
-    const maliciousIPs = ['192.168.1.50', '203.0.113.42', '198.51.100.23', '45.22.12.99', '10.0.0.15'];
-    const safeIPs = ['192.168.1.100', '192.168.1.101', '192.168.1.102'];
-    const users = ['root', 'admin', 'mattheus', 'ubuntu', 'guest'];
 
     for (let i = 0; i < count; i++) {
         const timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
         const eventDate = new Date(now.getTime() - timeOffset);
 
-        const isMalicious = Math.random() > 0.7;
-        const ip = isMalicious ? maliciousIPs[Math.floor(Math.random() * maliciousIPs.length)] : safeIPs[Math.floor(Math.random() * safeIPs.length)];
-        const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.9 ? 'Failed' : 'Success');
-        const user = users[Math.floor(Math.random() * users.length)];
+        const isMalicious = Math.random() > 0.6; // 60% of logs are malicious
+        const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
+        const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.95 ? 'Failed' : 'Success');
+        const user = getRandomItem(users);
+        const method = getRandomItem(methods);
+        const host = getRandomItem(hosts);
+        const port = getRandomItem(ports);
+
+        // Assign risk dynamically based on outcome and nature
+        let risk: 'Low' | 'Medium' | 'High' = 'Low';
+        if (isMalicious) {
+            if (result === 'Success') risk = 'High'; // Compromised
+            else risk = 'Medium'; // Brute force attempt
+        } else {
+            if (result === 'Failed') risk = 'Low'; // Simple typo inside secure network
+        }
+
+        // Add additional edge cases for High Risk
+        if (user === 'root' && result === 'Success' && port !== 22) risk = 'High';
 
         logs.push({
             id: '',
             timestamp: eventDate.toISOString(),
             user,
             sourceIp: ip,
-            host: 'ubuntu-server-01',
+            host,
             result,
-            method: 'password',
-            port: 22,
-            risk: isMalicious ? (result === 'Failed' ? 'Medium' : 'High') : 'Low'
+            method,
+            port,
+            risk
         });
     }
 
@@ -72,13 +104,13 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 const initFirestoreLogs = async () => {
     // Increased the fetch limit to 5,000 records dynamically, preventing out of memory on UI while storing infinity on DB
     const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
-
+    
     onSnapshot(q, (snapshot) => {
         const logsFromDB: AuthLog[] = [];
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            logsFromDB.push({
-                id: docSnap.id,
+            logsFromDB.push({ 
+                id: docSnap.id, 
                 timestamp: data.timestamp,
                 user: data.user,
                 sourceIp: data.sourceIp,
@@ -94,8 +126,8 @@ const initFirestoreLogs = async () => {
         if (logsFromDB.length === 0 && !localStorage.getItem('vigicore_seeded_firebase')) {
             console.log('Seeding initial Firestore logs to Firebase...');
             localStorage.setItem('vigicore_seeded_firebase', 'true'); // lock this client
-
-            const initLogs = generateInitialLogs(500);
+            
+            const initLogs = generateInitialLogs(400); // Varied logs out the gate
             const batch = writeBatch(db);
             initLogs.forEach(log => {
                 const docRef = doc(LOGS_COL);
@@ -123,24 +155,35 @@ setInterval(() => {
     if (!lastLeader || now - parseInt(lastLeader) >= 10000) {
         localStorage.setItem('vigicore_simulator_leader_time', now.toString());
     }
-
+    
     // Only the leader device writes random logs
     if (now - parseInt(localStorage.getItem('vigicore_simulator_leader_time') || '0') < 2000) {
-        const isMalicious = Math.random() > 0.8;
-        const ip = isMalicious ? '203.0.113.42' : '192.168.1.100';
+        const isMalicious = Math.random() > 0.6;
+        const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
+        const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.95 ? 'Failed' : 'Success');
+        const user = getRandomItem(users);
+        const method = getRandomItem(methods);
+        const host = getRandomItem(hosts);
+        const port = getRandomItem(ports);
+
+        let risk: 'Low' | 'Medium' | 'High' = 'Low';
+        if (isMalicious && result === 'Success') risk = 'High';
+        else if (isMalicious && result === 'Failed') risk = 'Medium';
+        else if (!isMalicious && result === 'Failed') risk = 'Low';
 
         addDoc(LOGS_COL, {
             timestamp: new Date().toISOString(),
-            user: isMalicious ? 'root' : 'mattheus',
+            user,
             sourceIp: ip,
-            host: 'ubuntu-server-01',
-            result: isMalicious ? 'Failed' : 'Success',
-            method: 'password',
-            port: 22,
-            risk: isMalicious ? 'Medium' : 'Low'
+            host,
+            result,
+            method,
+            port,
+            risk
         }).catch(console.error);
     }
 }, 4000);
+
 
 let currentTimeFilter = 'All time';
 
@@ -162,13 +205,13 @@ const getFilteredLogs = (): AuthLog[] => {
         'This quarter': 90 * 24 * 60 * 60 * 1000,
         'This year': 365 * 24 * 60 * 60 * 1000,
     };
-
+    
     if (currentTimeFilter === 'Today') {
         const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
+        startOfToday.setHours(0,0,0,0);
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
     }
-
+    
     const threshold = thresholds[currentTimeFilter];
     if (threshold) {
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
@@ -297,20 +340,33 @@ export const ElasticsearchService = {
     getIPIntelligence: async (): Promise<any[]> => {
         const suspiciousIPs = await ElasticsearchService.getSuspiciousIPs();
 
-        // Generate mock locations and threats for top IPs
+        // Varied IPs logic covering all possible generated strings
         const ipIntelligenceDatabase: Record<string, any> = {
-            '192.168.1.50': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
-            '203.0.113.42': { country: 'Russia', city: 'Moscow', coordinates: [37.6173, 55.7558] },
-            '198.51.100.23': { country: 'China', city: 'Beijing', coordinates: [116.4074, 39.9042] },
-            '45.22.12.99': { country: 'USA', city: 'New York', coordinates: [-74.0060, 40.7128] },
-            '10.0.0.15': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
+            '203.0.113.42': { country: 'Russia', city: 'Moscow', coordinates: [37.6173, 55.7558], type: 'Botnet' },
+            '198.51.100.23': { country: 'China', city: 'Beijing', coordinates: [116.4074, 39.9042], type: 'Scanning IP' },
+            '45.22.12.99': { country: 'USA', city: 'New York', coordinates: [-74.0060, 40.7128], type: 'VPN/Proxy' },
+            '101.42.15.11': { country: 'China', city: 'Shanghai', coordinates: [121.4737, 31.2304], type: 'DDoS Node' },
+            '220.191.50.80': { country: 'China', city: 'Hangzhou', coordinates: [120.1551, 30.2741], type: 'Brute-forcer' },
+            '5.188.87.52': { country: 'Russia', city: 'St. Petersburg', coordinates: [30.3141, 59.9386], type: 'Spam Node' },
+            '185.20.10.15': { country: 'Netherlands', city: 'Amsterdam', coordinates: [4.8952, 52.3702], type: 'Tor Exit Node' },
+            '31.14.88.2': { country: 'Iran', city: 'Tehran', coordinates: [51.3890, 35.6892], type: 'Suspicious' },
+            '45.144.200.11': { country: 'Brazil', city: 'Sao Paulo', coordinates: [-46.6333, -23.5505], type: 'Botnet' },
+            '193.106.191.13': { country: 'Ukraine', city: 'Kyiv', coordinates: [30.5234, 50.4501], type: 'Malware C2' },
+            '181.214.206.51': { country: 'Colombia', city: 'Bogota', coordinates: [-74.0721, 4.7110], type: 'Proxy' },
+            '118.193.31.22': { country: 'Hong Kong', city: 'Hong Kong', coordinates: [114.1694, 22.3193], type: 'Suspicious' },
+            '34.122.50.77': { country: 'USA', city: 'Chicago', coordinates: [41.8781, -87.6298], type: 'Cloud Hosting' },
+            '18.220.11.192': { country: 'USA', city: 'San Francisco', coordinates: [37.7749, -122.4194], type: 'Cloud Node' },
+            '51.15.20.25': { country: 'France', city: 'Paris', coordinates: [48.8566, 2.3522], type: 'Hosting IP' },
+            '178.128.99.200': { country: 'Singapore', city: 'Singapore', coordinates: [1.3521, 103.8198], type: 'VPS Node' },
+            '159.65.11.45': { country: 'India', city: 'Bangalore', coordinates: [12.9716, 77.5946], type: 'Suspicious' },
+            '82.165.20.11': { country: 'Germany', city: 'Frankfurt', coordinates: [50.1109, 8.6821], type: 'Proxy' },
             '192.168.1.100': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
             '192.168.1.101': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
             '192.168.1.102': { country: 'Unknown', city: 'Internal Net', coordinates: [0, 0] },
         };
 
         return suspiciousIPs.map((item, index) => {
-            const data = ipIntelligenceDatabase[item.ip] || { country: 'Unknown', city: 'Unknown', coordinates: [0, 0] };
+            const data = ipIntelligenceDatabase[item.ip] || { country: 'Unknown', city: 'Unknown', coordinates: [0, 0], type: 'Unknown' };
 
             // Randomly assign some to real locations if they aren't in the DB to make the map look busy
             const backupCoords = [
@@ -320,9 +376,9 @@ export const ElasticsearchService = {
                 [13.4050, 52.5200], // Berlin
                 [-43.1729, -22.9068], // Rio
             ];
-            const coords = data.coordinates[0] === 0 ? backupCoords[index % backupCoords.length] : data.coordinates;
+            const coords = data.coordinates[0] === 0 ? (ipIntelligenceDatabase[item.ip] ? data.coordinates : backupCoords[index % backupCoords.length]) : data.coordinates;
             const country = data.country === 'Unknown' ? ['UK', 'France', 'Japan', 'Germany', 'Brazil'][index % 5] : data.country;
-            const city = data.city === 'Internal Net' ? ['London', 'Paris', 'Tokyo', 'Berlin', 'Rio de Janeiro'][index % 5] : data.city;
+            const city = data.city === 'Unknown' ? ['London', 'Paris', 'Tokyo', 'Berlin', 'Rio de Janeiro'][index % 5] : data.city;
 
             return {
                 ...item,
@@ -330,7 +386,8 @@ export const ElasticsearchService = {
                 city: city,
                 coordinates: coords,
                 threats: Math.floor(item.attempts / 10) + 1,
-                reputation: item.risk === 'High' ? 'High Risk' : item.risk === 'Medium' ? 'Low Risk' : 'Low Risk'
+                reputation: item.risk === 'High' ? 'High Risk' : item.risk === 'Medium' ? 'Suspicious' : 'Low Risk',
+                type: data.type || 'Unknown'
             };
         });
     },
@@ -394,4 +451,3 @@ export const ElasticsearchService = {
         return Promise.resolve({ status: 'green' });
     }
 };
-
