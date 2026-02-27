@@ -68,7 +68,7 @@ export function AuthLogsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Authentication Logs</h1>
           <p className="text-gray-400 mt-1">Real-time SSH authentication events from all hosts</p>
@@ -144,7 +144,7 @@ export function AuthLogsPage() {
 
       {/* Filters */}
       <Card className="bg-[#131825] border-[#5B6AC2]/20 p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <Input
@@ -156,7 +156,7 @@ export function AuthLogsPage() {
           </div>
 
           <Select value={filterResult} onValueChange={setFilterResult}>
-            <SelectTrigger className="w-48 bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white">
+            <SelectTrigger className="w-full sm:w-48 bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white">
               <SelectValue placeholder="Filter by result" />
             </SelectTrigger>
             <SelectContent className="bg-[#1A1F2E] border-[#5B6AC2]/30 text-white">

@@ -34,7 +34,7 @@ import logoIcon from '../../assets/logo-icon.png';
 export function DashboardLayout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth > 768);
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<AuthLog[]>([]);
@@ -92,7 +92,7 @@ export function DashboardLayout() {
     <div className="min-h-screen bg-[#0A0E1A] dark">
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-full bg-[#131825] border-r border-[#5B6AC2]/20 transition-all duration-300 z-40 ${sidebarOpen ? 'w-64' : 'w-20'
+        className={`fixed left-0 top-0 h-full bg-[#131825] border-r border-[#5B6AC2]/20 transition-all duration-300 z-50 ${sidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full md:translate-x-0 md:w-20'
           }`}
       >
         {/* Logo */}
@@ -129,11 +129,19 @@ export function DashboardLayout() {
         </nav>
       </aside>
 
+      {/* Overlay for mobile sidebar */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
-      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-0 md:ml-64' : 'ml-0 md:ml-20'}`}>
         {/* Top Bar */}
-        <header className="h-20 bg-[#131825] border-b border-[#5B6AC2]/20 px-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <header className="h-20 bg-[#131825] border-b border-[#5B6AC2]/20 px-4 md:px-6 flex items-center justify-between">
+          <div className="flex items-center gap-2 md:gap-4 flex-1">
             <Button
               variant="ghost"
               size="icon"
@@ -144,7 +152,7 @@ export function DashboardLayout() {
             </Button>
 
             {/* Search */}
-            <div className="relative w-96 z-50">
+            <div className="relative w-full max-w-[150px] sm:max-w-[200px] md:max-w-96 z-50">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
               <Input
                 placeholder="Search logs, IPs, events..."
@@ -194,12 +202,14 @@ export function DashboardLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            {/* System Status */}
-            <StatusBadge status="secure" label="System Secure" />
+          <div className="flex items-center gap-2 md:gap-4">
+            {/* System Status - hidden on small mobile */}
+            <div className="hidden sm:block">
+              <StatusBadge status="secure" label="System Secure" />
+            </div>
 
-            {/* Date/Time */}
-            <div className="text-sm text-gray-400">
+            {/* Date/Time - hidden on mobile */}
+            <div className="hidden md:block text-sm text-gray-400">
               {new Date().toLocaleDateString('en-US', {
                 weekday: 'short',
                 year: 'numeric',
@@ -266,7 +276,7 @@ export function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="p-6">
+        <main className="p-4 md:p-6 overflow-x-hidden">
           <Outlet />
         </main>
       </div>

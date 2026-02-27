@@ -92,7 +92,7 @@ export function SuspiciousActivityPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">Suspicious Activity</h1>
           <p className="text-gray-400 mt-1">
@@ -107,7 +107,7 @@ export function SuspiciousActivityPage() {
 
       {/* Filters */}
       <Card className="bg-[#131825] border-[#5B6AC2]/20 p-4">
-        <div className="flex gap-4">
+        <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
             <Input
@@ -119,7 +119,7 @@ export function SuspiciousActivityPage() {
           </div>
 
           <Select value={filterRisk} onValueChange={setFilterRisk}>
-            <SelectTrigger className="w-48 bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white">
+            <SelectTrigger className="w-full sm:w-48 bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white">
               <Filter className="w-4 h-4 mr-2" />
               <SelectValue placeholder="Filter by risk" />
             </SelectTrigger>
@@ -160,7 +160,7 @@ export function SuspiciousActivityPage() {
                   )}
                 </Button>
 
-                <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                <div className="flex-1 grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4 items-center">
                   <div>
                     <p className="text-xs text-gray-400">Timestamp</p>
                     <p className="text-sm text-white font-mono">
@@ -229,7 +229,7 @@ export function SuspiciousActivityPage() {
                       </div>
                     </div>
 
-                    <div className="flex gap-3 pt-3">
+                    <div className="flex flex-col sm:flex-row gap-3 pt-3">
                       <Button
                         size="sm"
                         className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90"
