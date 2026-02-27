@@ -1,0 +1,8 @@
+{
+    "name": "vigicore-vercel-deployment",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "build": "cd \"Cybersecurity Dashboard UI System\" && npm install && npm run build && cd .. && rm -rf public && cp -r \"Cybersecurity Dashboard UI System/dist\" public"
+    }
+}
