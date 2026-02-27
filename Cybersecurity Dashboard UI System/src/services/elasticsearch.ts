@@ -1,6 +1,6 @@
 import axios from 'axios';
-
-const ES_API_URL = '/api/elasticsearch';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc } from 'firebase/firestore';
+import { app } from './auth';
 
 export interface FailedLogin {
     time: string;
@@ -29,26 +29,31 @@ export interface AuthEvent {
     events: number;
 }
 
+// Database Connection
+const db = getFirestore(app);
+const LOGS_COL = collection(db, 'authLogs');
+
+let mockLogs: AuthLog[] = [];
+
 // Stateful Mock Data Generator
-const generateInitialLogs = (): AuthLog[] => {
+const generateInitialLogs = (count: number = 300): AuthLog[] => {
     const logs: AuthLog[] = [];
     const now = new Date();
     const maliciousIPs = ['192.168.1.50', '203.0.113.42', '198.51.100.23', '45.22.12.99', '10.0.0.15'];
     const safeIPs = ['192.168.1.100', '192.168.1.101', '192.168.1.102'];
     const users = ['root', 'admin', 'mattheus', 'ubuntu', 'guest'];
 
-    // Generate 1500 logs over the last 24 hours
-    for (let i = 0; i < 1500; i++) {
-        const timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000); // Random time in last 24h
+    for (let i = 0; i < count; i++) {
+        const timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
         const eventDate = new Date(now.getTime() - timeOffset);
 
-        const isMalicious = Math.random() > 0.7; // 30% are malicious
+        const isMalicious = Math.random() > 0.7;
         const ip = isMalicious ? maliciousIPs[Math.floor(Math.random() * maliciousIPs.length)] : safeIPs[Math.floor(Math.random() * safeIPs.length)];
         const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.9 ? 'Failed' : 'Success');
         const user = users[Math.floor(Math.random() * users.length)];
 
         logs.push({
-            id: `log-${Math.random().toString(36).substr(2, 9)}`,
+            id: '',
             timestamp: eventDate.toISOString(),
             user,
             sourceIp: ip,
@@ -63,51 +68,79 @@ const generateInitialLogs = (): AuthLog[] => {
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-const STORAGE_KEY = 'vigicore_logs_db';
+// Initialize Firestore Listening
+const initFirestoreLogs = async () => {
+    // Increased the fetch limit to 5,000 records dynamically, preventing out of memory on UI while storing infinity on DB
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
 
-let mockLogs: AuthLog[] = [];
+    onSnapshot(q, (snapshot) => {
+        const logsFromDB: AuthLog[] = [];
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            logsFromDB.push({
+                id: docSnap.id,
+                timestamp: data.timestamp,
+                user: data.user,
+                sourceIp: data.sourceIp,
+                host: data.host,
+                result: data.result,
+                method: data.method,
+                port: data.port,
+                risk: data.risk
+            });
+        });
 
-const initLogsDB = () => {
-    try {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            mockLogs = JSON.parse(stored);
+        // Seed initial if absolutely empty. We seed 500 records.
+        if (logsFromDB.length === 0 && !localStorage.getItem('vigicore_seeded_firebase')) {
+            console.log('Seeding initial Firestore logs to Firebase...');
+            localStorage.setItem('vigicore_seeded_firebase', 'true'); // lock this client
+
+            const initLogs = generateInitialLogs(500);
+            const batch = writeBatch(db);
+            initLogs.forEach(log => {
+                const docRef = doc(LOGS_COL);
+                log.id = docRef.id;
+                batch.set(docRef, log);
+            });
+            batch.commit().catch(console.error);
         } else {
-            mockLogs = generateInitialLogs();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(mockLogs));
+            mockLogs = logsFromDB.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+            // Dispatch event to make UI update its cache if observing the array change manually.
+            window.dispatchEvent(new Event('logsDatabaseUpdated'));
         }
-    } catch (e) {
-        // Fallback for strict privacy modes or SSR
-        mockLogs = generateInitialLogs();
-    }
+    }, (error) => console.log('Firestore listener error:', error));
 };
 
-initLogsDB();
+initFirestoreLogs();
 
-// Simulator loop to add live data
+// Simulator loop to add live data to Firestore (acts as the unified backend driver)
+// It only produces traffic on devices that enable it, to prevent write spam.
+// We auto-enable if we are the primary tab open (basic local locking mechanism for demonstration).
 setInterval(() => {
-    const isMalicious = Math.random() > 0.8;
-    const ip = isMalicious ? '203.0.113.42' : '192.168.1.100';
-    mockLogs.unshift({
-        id: `log-${Math.random().toString(36).substr(2, 9)}`,
-        timestamp: new Date().toISOString(),
-        user: isMalicious ? 'root' : 'mattheus',
-        sourceIp: ip,
-        host: 'ubuntu-server-01',
-        result: isMalicious ? 'Failed' : 'Success',
-        method: 'password',
-        port: 22,
-        risk: isMalicious ? 'Medium' : 'Low'
-    });
-    if (mockLogs.length > 3000) mockLogs.pop();
-
-    // Persist to local storage to sync across refresh
-    try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(mockLogs));
-    } catch (e) {
-        // Ignore quota exceptions safely
+    // Basic leader election via localStorage lock 10s
+    const lastLeader = localStorage.getItem('vigicore_simulator_leader_time');
+    const now = Date.now();
+    if (!lastLeader || now - parseInt(lastLeader) >= 10000) {
+        localStorage.setItem('vigicore_simulator_leader_time', now.toString());
     }
-}, 2500);
+
+    // Only the leader device writes random logs
+    if (now - parseInt(localStorage.getItem('vigicore_simulator_leader_time') || '0') < 2000) {
+        const isMalicious = Math.random() > 0.8;
+        const ip = isMalicious ? '203.0.113.42' : '192.168.1.100';
+
+        addDoc(LOGS_COL, {
+            timestamp: new Date().toISOString(),
+            user: isMalicious ? 'root' : 'mattheus',
+            sourceIp: ip,
+            host: 'ubuntu-server-01',
+            result: isMalicious ? 'Failed' : 'Success',
+            method: 'password',
+            port: 22,
+            risk: isMalicious ? 'Medium' : 'Low'
+        }).catch(console.error);
+    }
+}, 4000);
 
 
 let currentTimeFilter = 'All time';
@@ -130,13 +163,13 @@ const getFilteredLogs = (): AuthLog[] => {
         'This quarter': 90 * 24 * 60 * 60 * 1000,
         'This year': 365 * 24 * 60 * 60 * 1000,
     };
-    
+
     if (currentTimeFilter === 'Today') {
         const startOfToday = new Date();
-        startOfToday.setHours(0,0,0,0);
+        startOfToday.setHours(0, 0, 0, 0);
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
     }
-    
+
     const threshold = thresholds[currentTimeFilter];
     if (threshold) {
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
@@ -298,7 +331,7 @@ export const ElasticsearchService = {
                 city: city,
                 coordinates: coords,
                 threats: Math.floor(item.attempts / 10) + 1,
-                reputation: item.risk === 'High' ? 'High Risk' : item.risk === 'Medium' ? 'Medium Risk' : 'Low Risk'
+                reputation: item.risk === 'High' ? 'High Risk' : item.risk === 'Medium' ? 'Low Risk' : 'Low Risk'
             };
         });
     },
@@ -323,7 +356,6 @@ export const ElasticsearchService = {
         const fullAlerts = getFilteredLogs().filter(l => l.risk === 'High' || l.result === 'Failed');
         let active = 0, monitoring = 0, resolved = 0;
 
-        // Match the same logic assignment mapping used in getAlerts for consistency
         fullAlerts.forEach((_, index) => {
             if (index % 4 === 0) resolved++;
             else if (index % 3 === 0) monitoring++;
@@ -344,7 +376,6 @@ export const ElasticsearchService = {
             .slice(0, 24);
 
         return Promise.resolve(recentHighRiskLogs.map((log, index) => {
-            // Generate visually diverse statuses for the demo
             let status = 'Active';
             if (index % 4 === 0) status = 'Resolved';
             else if (index % 3 === 0) status = 'Monitoring';
