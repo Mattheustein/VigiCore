@@ -17,8 +17,8 @@ const LOGS_COL = collection(db, "authLogs");
 
 // Shared Mock Entities for Variety
 const maliciousIPs = [
-    '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11', 
-    '220.191.50.80', '5.188.87.52', '185.20.10.15', '31.14.88.2', 
+    '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11',
+    '220.191.50.80', '5.188.87.52', '185.20.10.15', '31.14.88.2',
     '45.144.200.11', '193.106.191.13', '181.214.206.51', '118.193.31.22',
     '34.122.50.77', '18.220.11.192', '51.15.20.25', '178.128.99.200',
     '159.65.11.45', '82.165.20.11'
@@ -38,14 +38,14 @@ const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 const generateEvents = async () => {
     // Generate 5 to 15 events to simulate 5 minutes of background traffic
     const eventCount = Math.floor(Math.random() * 11) + 5;
-    
+
     console.log(`Simulating ${eventCount} events in background...`);
     const now = new Date();
 
     for (let i = 0; i < eventCount; i++) {
         const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000); // within the last 5 mins
         const eventDate = new Date(now.getTime() - timeOffset);
-        
+
         const isMalicious = Math.random() > 0.6;
         const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
         const result = isMalicious ? (Math.random() > 0.05 ? 'Failed' : 'Success') : (Math.random() > 0.95 ? 'Failed' : 'Success');

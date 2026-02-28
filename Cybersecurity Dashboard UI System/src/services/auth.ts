@@ -5,8 +5,10 @@ import {
     createUserWithEmailAndPassword,
     signOut,
     updateProfile,
+    updateEmail,
     onAuthStateChanged
 } from "firebase/auth";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCXFs_pE63H5uk_o2oM7gvfD5TdckP5G7g",
@@ -26,13 +28,16 @@ export const auth = getAuth(app);
 const secondaryApp = initializeApp(firebaseConfig, "Secondary");
 const secondaryAuth = getAuth(secondaryApp);
 
+const db = getFirestore(app);
+
 let currentUser: any = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
 onAuthStateChanged(auth, (user) => {
     if (user) {
         const displayName = user.displayName || user.email || '';
         const roleMatch = displayName.match(/\[(.*?)\]$/);
-        const role = roleMatch ? roleMatch[1] : (user.email === 'mattheustein@vigicore.local' ? 'Super Admin' : 'Analyst');
+        const isSuperAdminEmail = user.email === 'mattheustein@vigicore.local' || user.email === 'swe.mahmoud.sultan@gmail.com';
+        const role = roleMatch ? roleMatch[1] : (isSuperAdminEmail ? 'Super Admin' : 'Analyst');
         const fullName = displayName.replace(/\s*\[.*?\]$/, '');
 
         currentUser = {
@@ -50,18 +55,32 @@ onAuthStateChanged(auth, (user) => {
 
 export const AuthService = {
     initDB: () => { },
-    getUsers: () => {
-        // We can't list all users natively from pure client SDK securely.
-        // For dashboard mock UI purposes, we'll return a cached list from local storage or display the logged in user as the only known "database".
-        // A true user list requires a Firebase Admin/Cloud Functions or Firestore collection. Let's return local mock just so UI doesn't crash:
+    getUsers: async () => {
         try {
-            return JSON.parse(localStorage.getItem('localUsersMockList') || '[]');
+            const querySnapshot = await getDocs(collection(db, "userProfiles"));
+            const users: any[] = [];
+            querySnapshot.forEach((d) => {
+                users.push(d.data());
+            });
+
+            if (users.length === 0) {
+                const default1 = { fullName: "Mahmoud Sultan", username: "mattheustein", email: "swe.mahmoud.sultan@gmail.com", role: "Super Admin" };
+                const default2 = { fullName: "System Admin", username: "admin", email: "admin@vigicore.local", role: "Administrator" };
+                users.push(default1, default2);
+                await setDoc(doc(db, "userProfiles", "mattheustein"), default1);
+                await setDoc(doc(db, "userProfiles", "admin"), default2);
+            }
+            return users;
         } catch (e) {
+            console.error("Error fetching users", e);
             return [];
         }
     },
-    saveUsers: (users: any[]) => {
-        localStorage.setItem('localUsersMockList', JSON.stringify(users));
+    saveUserToDB: async (user: any) => {
+        await setDoc(doc(db, "userProfiles", user.username), user);
+    },
+    deleteUserFromDB: async (username: string) => {
+        await deleteDoc(doc(db, "userProfiles", username));
     },
 
     login: async (username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> => {
@@ -85,7 +104,9 @@ export const AuthService = {
 
     addUser: async (newUser: any): Promise<{ success: boolean; error?: string }> => {
         try {
-            const email = newUser.username.includes('@') ? newUser.username.toLowerCase() : `${newUser.username.toLowerCase()}@vigicore.local`;
+            const email = (newUser.email && newUser.email.includes('@'))
+                ? newUser.email.toLowerCase()
+                : (newUser.username.includes('@') ? newUser.username.toLowerCase() : `${newUser.username.toLowerCase()}@vigicore.local`);
             const role = newUser.role || 'Analyst';
 
             // Create user on secondary instance to avoid booting the active admin
@@ -97,12 +118,8 @@ export const AuthService = {
             });
             await signOut(secondaryAuth);
 
-            // Keep the local ui list updated for view purpose
-            const users = AuthService.getUsers();
-            if (!users.find((u: any) => u.username === newUser.username)) {
-                users.push(newUser);
-                AuthService.saveUsers(users);
-            }
+            // Keep the database list updated for view purpose
+            await AuthService.saveUserToDB({ ...newUser, email });
 
             return { success: true };
         } catch (error: any) {
@@ -119,8 +136,14 @@ export const AuthService = {
                     displayName: `${updatedUser.fullName || updatedUser.username} [${role}]`
                 });
 
-                // Update local storage representation
+                if (updatedUser.email && updatedUser.email !== auth.currentUser.email) {
+                    await updateEmail(auth.currentUser, updatedUser.email);
+                }
+
+                // Update global users list if they are in there
                 currentUser = { ...currentUser, ...updatedUser };
+                await AuthService.saveUserToDB(currentUser);
+
                 localStorage.setItem('currentUser', JSON.stringify(currentUser));
                 window.dispatchEvent(new Event('authChange'));
 
