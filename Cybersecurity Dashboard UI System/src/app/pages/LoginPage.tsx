@@ -158,13 +158,12 @@ export function LoginPage() {
               Your session is protected with end-to-end encryption
             </p>
           </div>
-          </div>
         </div>
       </div>
 
       <div className="absolute bottom-0 left-0 w-full z-20">
         <Footer />
       </div>
-    </div >
+    </div>
   );
 }
