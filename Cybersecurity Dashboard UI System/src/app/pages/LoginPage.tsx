@@ -150,15 +150,6 @@ export function LoginPage() {
                 </Button>
               </div>
             </div>
-
-            {/* Security Note */}
-            <div className="mt-6 p-4 bg-[#5B6AC2]/5 border border-[#5B6AC2]/20 rounded-lg">
-              <p className="text-xs text-gray-400 text-center">
-                <span className="text-[#5B6AC2] font-medium">🔒 Encrypted Connection</span>
-                <br />
-                Your session is protected with end-to-end encryption
-              </p>
-            </div>
           </div>
         </div>
       </div>
