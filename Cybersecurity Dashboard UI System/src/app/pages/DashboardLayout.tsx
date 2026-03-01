@@ -32,6 +32,7 @@ import { ElasticsearchService, AuthLog, setGlobalTimeFilter, getGlobalTimeFilter
 import profilePic from '../../assets/profile-pic.png';
 import logo from '../../assets/logo-alt.png';
 import logoIcon from '../../assets/logo-icon.png';
+import { Footer } from '../components/Footer';
 
 export function DashboardLayout() {
   const location = useLocation();
@@ -303,9 +304,10 @@ export function DashboardLayout() {
         </header>
 
         {/* Page Content */}
-        <main className="p-4 md:p-6 overflow-x-hidden">
+        <main className="flex-1 p-4 md:p-6 overflow-x-hidden">
           <Outlet key={timeFilter} />
         </main>
+        <Footer />
       </div>
     </div>
   );
