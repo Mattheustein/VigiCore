@@ -59,13 +59,13 @@ export function LoginPage() {
       <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-[#E91E63]/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
 
       {/* Main Form Area */}
-      <div className="flex-1 flex items-center justify-center relative z-10 w-full py-8 px-4 overflow-y-auto custom-scrollbar">
-        <div className="w-full max-w-md">
-          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-y-auto custom-scrollbar my-4">
+        <div className="w-full max-w-md px-4 mt-auto mb-auto">
+          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl relative">
             {/* Logo */}
             <div className="flex justify-center mb-6">
-              <div className="w-48 h-32 flex items-center justify-center">
-                <img src={logo} alt="VigiCore Logo" className="w-full h-full object-contain" />
+              <div className="w-48 h-24 sm:h-32 flex items-center justify-center mt-2">
+                <img src={logo} alt="VigiCore Logo" className="w-full h-full object-contain drop-shadow-lg" />
               </div>
             </div>
 
