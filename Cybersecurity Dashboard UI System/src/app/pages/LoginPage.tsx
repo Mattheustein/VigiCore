@@ -62,7 +62,7 @@ export function LoginPage() {
         <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl">
           {/* Logo */}
           <div className="flex justify-center mb-8">
-            <div className="w-48 h-32 flex items-center justify-center">
+            <div className="w-72 h-44 flex items-center justify-center">
               <img src={logo} alt="VigiCore Logo" className="w-full h-full object-contain" />
             </div>
           </div>
