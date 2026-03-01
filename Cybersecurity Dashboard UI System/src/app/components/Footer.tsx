@@ -3,9 +3,10 @@ import { Linkedin } from 'lucide-react';
 export function Footer() {
     return (
         <footer className="w-full py-6 px-4 md:px-8 border-t border-[#5B6AC2]/20 relative z-20 bg-[#0A0E1A]/80 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-400 mt-auto">
-            <div className="text-center md:text-left max-w-2xl leading-relaxed">
-                <p>This website has been created by <strong className="text-gray-200 font-medium">Mahmoud Sultan (Mattheustein)</strong>.</p>
-                <p>This website is considered as a graduation project for him which is an Intrusion Detection System.</p>
+            <div className="text-center md:text-left max-w-3xl leading-relaxed">
+                <p>
+                    Developed by <strong className="text-gray-200 font-medium tracking-wide">Mahmoud Sultan (Mattheustein)</strong>, this platform serves as his graduation project and demonstrates the design and implementation of an Intrusion Detection System (IDS).
+                </p>
             </div>
 
             <div className="flex items-center gap-2">
