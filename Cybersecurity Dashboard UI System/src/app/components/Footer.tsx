@@ -21,8 +21,7 @@ export function Footer() {
                     Developed by <strong className="text-gray-200 font-medium tracking-wide">Mahmoud Sultan (Mattheustein)</strong>, this platform serves as his graduation project and demonstrates the design and implementation of an Intrusion Detection System (IDS).
                 </p>
             </div>
-
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mr-8 md:mr-10">
                 <a
                     href="https://www.linkedin.com/in/mattheustein"
                     target="_blank"
