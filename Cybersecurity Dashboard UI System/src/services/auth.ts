@@ -7,9 +7,11 @@ import {
     updateProfile,
     updateEmail,
     onAuthStateChanged,
-    verifyBeforeUpdateEmail
+    verifyBeforeUpdateEmail,
+    GoogleAuthProvider,
+    signInWithPopup
 } from "firebase/auth";
-import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc, getDoc } from "firebase/firestore";
 
 const firebaseConfig = {
     apiKey: "AIzaSyCXFs_pE63H5uk_o2oM7gvfD5TdckP5G7g",
@@ -92,6 +94,40 @@ export const AuthService = {
         } catch (error: any) {
             console.error(error);
             return { success: false, error: 'Invalid username or password' };
+        }
+    },
+
+    loginWithGoogle: async (): Promise<{ success: boolean; user?: any; error?: string }> => {
+        try {
+            const provider = new GoogleAuthProvider();
+            const result = await signInWithPopup(auth, provider);
+
+            const user = result.user;
+            const email = user.email || '';
+            const fullName = user.displayName || email.split('@')[0];
+            const defaultUsername = email.split('@')[0].toLowerCase();
+
+            const allUsers = await AuthService.getUsers();
+            const existingProfile = allUsers.find(u => u.email === email);
+
+            if (!existingProfile) {
+                // Check if default username is taken
+                const usernameTaken = allUsers.find(u => u.username === defaultUsername);
+                const username = usernameTaken ? `${defaultUsername}_${Date.now().toString().slice(-4)}` : defaultUsername;
+
+                const newUserProfile = {
+                    username,
+                    fullName,
+                    email,
+                    role: 'Analyst'
+                };
+                await AuthService.saveUserToDB(newUserProfile);
+            }
+
+            return { success: true, user: currentUser };
+        } catch (error: any) {
+            console.error(error);
+            return { success: false, error: 'Google Login failed: ' + error.message };
         }
     },
 
