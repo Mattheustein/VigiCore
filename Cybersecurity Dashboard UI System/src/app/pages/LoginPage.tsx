@@ -41,7 +41,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col relative bg-[#0A0E1A]">
+    <div className="h-screen w-full flex flex-col relative bg-[#0A0E1A] overflow-hidden">
       {/* Background container bounded by overflow-hidden */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {/* Gradient background with logo colors */}
@@ -62,9 +62,9 @@ export function LoginPage() {
       </div>
 
       {/* Main Form Area */}
-      <div className="flex-1 flex items-center justify-center relative z-10 w-full py-8 px-4">
-        <div className="w-full max-w-md">
-          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-y-auto pt-6 pb-2 px-4 shadow-xl">
+        <div className="w-full max-w-md my-auto">
+          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-6 shadow-2xl">
             {/* Logo */}
             <div className="flex justify-center mb-8">
               <div className="w-72 h-44 flex items-center justify-center">
