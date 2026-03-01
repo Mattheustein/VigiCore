@@ -53,7 +53,11 @@ export function SettingsPage() {
       setNewUser({ fullName: '', username: '', email: '', password: '', role: 'Analyst' });
       alert('User added successfully');
     } else {
-      alert(res.error);
+      if (res.error?.includes('email-already-in-use')) {
+        alert('Firebase Error: Email is already in use by an existing account. If this is your email, try editing your existing profile instead of adding a new one.');
+      } else {
+        alert(res.error);
+      }
     }
   };
 
@@ -242,7 +246,7 @@ export function SettingsPage() {
                         ) : (
                           <div>
                             <p className="text-white font-medium text-sm">{u.fullName || u.username}</p>
-                            <p className="text-gray-400 text-xs">@{u.username} • {u.role} {u.email ? `• ${u.email}` : ''}</p>
+                            <p className="text-gray-400 text-xs">@{u.username} • {u.role} <span className={u.email ? "text-blue-400 ml-1" : "text-gray-500 italic ml-1"}>• {u.email || 'No email (click pencil to add)'}</span></p>
                           </div>
                         )}
                         <div className="flex items-center gap-1">
