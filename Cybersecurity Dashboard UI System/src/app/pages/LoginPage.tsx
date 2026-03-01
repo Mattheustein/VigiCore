@@ -4,7 +4,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Shield, Lock, Mail, AlertTriangle } from 'lucide-react';
-import logo from '../../assets/logo-alt.png';
+import logo from '../../assets/vigicore-logo-grad-2-01.png';
 import { AuthService } from '../../services/auth';
 
 export function LoginPage() {
