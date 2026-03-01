@@ -35,19 +35,40 @@ const db = getFirestore(app);
 
 let currentUser: any = JSON.parse(localStorage.getItem('currentUser') || 'null');
 
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     if (user) {
-        const displayName = user.displayName || user.email || '';
-        const roleMatch = displayName.match(/\[(.*?)\]$/);
-        const isSuperAdminEmail = user.email === 'mattheustein@vigicore.local' || user.email === 'swe.mahmoud.sultan@gmail.com';
-        const role = roleMatch ? roleMatch[1] : (isSuperAdminEmail ? 'Super Admin' : 'Analyst');
-        const fullName = displayName.replace(/\s*\[.*?\]$/, '');
+        const email = user.email?.toLowerCase();
+        let dbProfile = null;
 
-        currentUser = {
-            username: user.email?.replace('@vigicore.local', ''),
-            fullName: fullName || user.email?.split('@')[0],
-            role: role
-        };
+        try {
+            const querySnapshot = await getDocs(collection(db, "userProfiles"));
+            querySnapshot.forEach((d) => {
+                const data = d.data();
+                if (data.email?.toLowerCase() === email) {
+                    dbProfile = data;
+                }
+            });
+        } catch (e) {
+            console.error("Auth change error reading DB:", e);
+        }
+
+        if (dbProfile) {
+            currentUser = dbProfile;
+        } else {
+            // Fallback
+            const displayName = user.displayName || user.email || '';
+            const roleMatch = displayName.match(/\[(.*?)\]$/);
+            const isSuperAdminEmail = user.email === 'mattheustein@vigicore.local' || user.email === 'swe.mahmoud.sultan@gmail.com';
+            const role = roleMatch ? roleMatch[1] : (isSuperAdminEmail ? 'Super Admin' : 'Analyst');
+            const fullName = displayName.replace(/\s*\[.*?\]$/, '');
+
+            currentUser = {
+                username: user.email?.replace('@vigicore.local', ''),
+                email: user.email,
+                fullName: fullName || user.email?.split('@')[0],
+                role: role
+            };
+        }
         localStorage.setItem('currentUser', JSON.stringify(currentUser));
     } else {
         currentUser = null;
@@ -111,19 +132,12 @@ export const AuthService = {
             const existingProfile = allUsers.find(u => u.email === email);
 
             if (!existingProfile) {
-                // Check if default username is taken
-                const usernameTaken = allUsers.find(u => u.username === defaultUsername);
-                const username = usernameTaken ? `${defaultUsername}_${Date.now().toString().slice(-4)}` : defaultUsername;
-
-                const newUserProfile = {
-                    username,
-                    fullName,
-                    email,
-                    role: 'Analyst'
-                };
-                await AuthService.saveUserToDB(newUserProfile);
+                await signOut(auth); // deny login token
+                return { success: false, error: 'Your email is not authorized. Please ask an Administrator to create a profile for you first.' };
             }
 
+            currentUser = existingProfile; // apply immediately, overriding the previous manual setter
+            localStorage.setItem('currentUser', JSON.stringify(currentUser));
             return { success: true, user: currentUser };
         } catch (error: any) {
             console.error(error);
