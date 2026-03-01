@@ -41,31 +41,34 @@ export function LoginPage() {
   };
 
   return (
-    <div className="h-screen w-full flex flex-col relative overflow-hidden bg-[#0A0E1A]">
-      {/* Gradient background with logo colors */}
-      <div className="absolute inset-0 bg-gradient-to-br from-[#5B6AC2]/20 via-[#E91E63]/10 to-[#FF6B35]/20" />
+    <div className="min-h-screen w-full flex flex-col relative bg-[#0A0E1A]">
+      {/* Background container bounded by overflow-hidden */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Gradient background with logo colors */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#5B6AC2]/20 via-[#E91E63]/10 to-[#FF6B35]/20" />
 
-      {/* Animated grid pattern */}
-      <div className="absolute inset-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `linear-gradient(rgba(91, 106, 194, 0.3) 1px, transparent 1px),
-                           linear-gradient(90deg, rgba(91, 106, 194, 0.3) 1px, transparent 1px)`,
-          backgroundSize: '50px 50px',
-        }} />
+        {/* Animated grid pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `linear-gradient(rgba(91, 106, 194, 0.3) 1px, transparent 1px),
+                             linear-gradient(90deg, rgba(91, 106, 194, 0.3) 1px, transparent 1px)`,
+            backgroundSize: '50px 50px',
+          }} />
+        </div>
+
+        {/* Abstract network shapes */}
+        <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-[#5B6AC2]/10 blur-3xl animate-pulse" />
+        <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-[#E91E63]/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
-      {/* Abstract network shapes */}
-      <div className="absolute top-20 left-20 w-64 h-64 rounded-full bg-[#5B6AC2]/10 blur-3xl animate-pulse" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-[#E91E63]/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-
       {/* Main Form Area */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full overflow-y-auto custom-scrollbar my-4">
-        <div className="w-full max-w-md px-4 mt-auto mb-auto">
-          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl relative">
+      <div className="flex-1 flex items-center justify-center relative z-10 w-full py-8 px-4">
+        <div className="w-full max-w-md">
+          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl">
             {/* Logo */}
-            <div className="flex justify-center mb-6">
-              <div className="w-48 h-24 sm:h-32 flex items-center justify-center mt-2">
-                <img src={logo} alt="VigiCore Logo" className="w-full h-full object-contain drop-shadow-lg" />
+            <div className="flex justify-center mb-8">
+              <div className="w-72 h-44 flex items-center justify-center">
+                <img src={logo} alt="VigiCore Logo" className="w-full h-full object-contain" />
               </div>
             </div>
 
