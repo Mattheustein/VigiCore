@@ -6,7 +6,8 @@ import {
     signOut,
     updateProfile,
     updateEmail,
-    onAuthStateChanged
+    onAuthStateChanged,
+    verifyBeforeUpdateEmail
 } from "firebase/auth";
 import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from "firebase/firestore";
 
@@ -137,7 +138,18 @@ export const AuthService = {
                 });
 
                 if (updatedUser.email && updatedUser.email !== auth.currentUser.email) {
-                    await updateEmail(auth.currentUser, updatedUser.email);
+                    try {
+                        await updateEmail(auth.currentUser, updatedUser.email);
+                    } catch (e: any) {
+                        if (e.code === 'auth/operation-not-allowed' || e.message?.includes('verify')) {
+                            await verifyBeforeUpdateEmail(auth.currentUser, updatedUser.email);
+                            alert(`Firebase Security Alert: A verification email has been sent to ${updatedUser.email}. Please click the link to finalize your new email address in the authentication system.`);
+                        } else if (e.code === 'auth/requires-recent-login') {
+                            return { success: false, error: 'Firebase Security requires you to log out and log back in before changing your email.' };
+                        } else {
+                            throw e;
+                        }
+                    }
                 }
 
                 // Update global users list if they are in there
