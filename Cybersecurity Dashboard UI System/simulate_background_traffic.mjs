@@ -36,14 +36,14 @@ const ports = [22, 2222, 21, 23, 80, 443, 3389, 8080, 5432, 3306, 6379, 27017, 1
 const getRandomItem = (arr) => arr[Math.floor(Math.random() * arr.length)];
 
 const generateEvents = async () => {
-    // Generate 5 to 15 events to simulate 5 minutes of background traffic
-    const eventCount = Math.floor(Math.random() * 11) + 5;
+    // Generate 25 to 60 events to ensure higher activity and compensate for any GitHub Action delays
+    const eventCount = Math.floor(Math.random() * 36) + 25;
 
     console.log(`Simulating ${eventCount} events in background...`);
     const now = new Date();
 
     for (let i = 0; i < eventCount; i++) {
-        const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000); // within the last 5 mins
+        const timeOffset = Math.floor(Math.random() * 10 * 60 * 1000); // within the last 10 mins
         const eventDate = new Date(now.getTime() - timeOffset);
 
         const isMalicious = Math.random() > 0.6;
