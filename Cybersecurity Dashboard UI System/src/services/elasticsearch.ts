@@ -37,8 +37,8 @@ let mockLogs: AuthLog[] = [];
 
 // Shared Mock Entities for Variety
 const maliciousIPs = [
-    '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11', 
-    '220.191.50.80', '5.188.87.52', '185.20.10.15', '31.14.88.2', 
+    '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11',
+    '220.191.50.80', '5.188.87.52', '185.20.10.15', '31.14.88.2',
     '45.144.200.11', '193.106.191.13', '181.214.206.51', '118.193.31.22',
     '34.122.50.77', '18.220.11.192', '51.15.20.25', '178.128.99.200',
     '159.65.11.45', '82.165.20.11'
@@ -104,13 +104,13 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 const initFirestoreLogs = async () => {
     // Increased the fetch limit to 5,000 records dynamically, preventing out of memory on UI while storing infinity on DB
     const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
-    
+
     onSnapshot(q, (snapshot) => {
         const logsFromDB: AuthLog[] = [];
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            logsFromDB.push({ 
-                id: docSnap.id, 
+            logsFromDB.push({
+                id: docSnap.id,
                 timestamp: data.timestamp,
                 user: data.user,
                 sourceIp: data.sourceIp,
@@ -126,7 +126,7 @@ const initFirestoreLogs = async () => {
         if (logsFromDB.length === 0 && !localStorage.getItem('vigicore_seeded_firebase')) {
             console.log('Seeding initial Firestore logs to Firebase...');
             localStorage.setItem('vigicore_seeded_firebase', 'true'); // lock this client
-            
+
             const initLogs = generateInitialLogs(400); // Varied logs out the gate
             const batch = writeBatch(db);
             initLogs.forEach(log => {
@@ -166,18 +166,40 @@ const getFilteredLogs = (): AuthLog[] => {
         'This quarter': 90 * 24 * 60 * 60 * 1000,
         'This year': 365 * 24 * 60 * 60 * 1000,
     };
-    
+
     if (currentTimeFilter === 'Today') {
         const startOfToday = new Date();
-        startOfToday.setHours(0,0,0,0);
+        startOfToday.setHours(0, 0, 0, 0);
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
     }
-    
+
     const threshold = thresholds[currentTimeFilter];
     if (threshold) {
         return mockLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
     }
     return mockLogs;
+};
+
+const getBucketConfig = () => {
+    let duration = 365 * 24 * 60 * 60 * 1000; // Default All time / This year
+    if (currentTimeFilter === 'Last hour') duration = 60 * 60 * 1000;
+    else if (currentTimeFilter === 'Today') duration = 24 * 60 * 60 * 1000;
+    else if (currentTimeFilter === 'This week') duration = 7 * 24 * 60 * 60 * 1000;
+    else if (currentTimeFilter === 'This month') duration = 30 * 24 * 60 * 60 * 1000;
+    else if (currentTimeFilter === 'This quarter') duration = 90 * 24 * 60 * 60 * 1000;
+
+    // Smooth out intervals based on duration
+    const intervals = currentTimeFilter === 'This week' ? 7 : (currentTimeFilter === 'Today' || currentTimeFilter === 'Last hour' ? 6 : 8);
+    const bucketSize = duration / intervals;
+
+    const formatTime = (date: Date) => {
+        if (duration <= 24 * 60 * 60 * 1000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        if (duration <= 7 * 24 * 60 * 60 * 1000) return date.toLocaleDateString([], { weekday: 'short' });
+        if (duration <= 30 * 24 * 60 * 60 * 1000) return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        return date.toLocaleDateString([], { month: 'short', year: '2-digit' });
+    };
+
+    return { intervals, bucketSize, formatTime };
 };
 
 export const ElasticsearchService = {
@@ -210,8 +232,7 @@ export const ElasticsearchService = {
 
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const now = new Date();
-        const intervals = 6;
-        const bucketSize = 4 * 60 * 60 * 1000; // 4 hours
+        const { intervals, bucketSize, formatTime } = getBucketConfig();
 
         const buckets = Array.from({ length: intervals }).map((_, i) => {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
@@ -223,7 +244,7 @@ export const ElasticsearchService = {
             }).length;
 
             return {
-                time: bucketEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                time: formatTime(bucketEnd),
                 attempts
             };
         });
@@ -249,8 +270,7 @@ export const ElasticsearchService = {
 
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
         const now = new Date();
-        const intervals = 6;
-        const bucketSize = 4 * 60 * 60 * 1000;
+        const { intervals, bucketSize, formatTime } = getBucketConfig();
 
         const buckets = Array.from({ length: intervals }).map((_, i) => {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
@@ -262,7 +282,7 @@ export const ElasticsearchService = {
             }).length;
 
             return {
-                time: bucketEnd.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                time: formatTime(bucketEnd),
                 events
             };
         });
