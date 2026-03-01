@@ -1,8 +1,21 @@
-import { Linkedin } from 'lucide-react';
+import { useState } from 'react';
+import { Linkedin, X } from 'lucide-react';
 
 export function Footer() {
+    const [isVisible, setIsVisible] = useState(true);
+
+    if (!isVisible) return null;
+
     return (
-        <footer className="w-full py-6 px-4 md:px-8 border-t border-[#5B6AC2]/20 relative z-20 bg-[#0A0E1A]/80 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-400 mt-auto">
+        <footer className="fixed bottom-0 left-0 right-0 w-full py-4 pr-10 pl-4 md:px-8 border-t border-[#5B6AC2]/20 z-50 bg-[#0A0E1A]/95 backdrop-blur-md flex flex-col md:flex-row items-center justify-between gap-4 text-xs md:text-sm text-gray-400 shadow-[0_-10px_40px_rgba(0,0,0,0.4)] transition-all duration-500">
+            <button
+                onClick={() => setIsVisible(false)}
+                className="absolute top-2 right-2 md:top-4 md:right-4 p-1.5 text-gray-400 hover:text-white bg-[#5B6AC2]/10 hover:bg-[#5B6AC2]/30 rounded-full transition-all"
+                aria-label="Close"
+            >
+                <X className="w-4 h-4" />
+            </button>
+
             <div className="text-center md:text-left max-w-3xl leading-relaxed">
                 <p>
                     Developed by <strong className="text-gray-200 font-medium tracking-wide">Mahmoud Sultan (Mattheustein)</strong>, this platform serves as his graduation project and demonstrates the design and implementation of an Intrusion Detection System (IDS).
