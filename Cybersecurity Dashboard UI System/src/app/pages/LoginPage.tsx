@@ -59,9 +59,9 @@ export function LoginPage() {
       <div className="absolute bottom-20 right-20 w-96 h-96 rounded-full bg-[#E91E63]/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
 
       {/* Main Form Area */}
-      <div className="flex-1 flex items-center justify-center relative z-10 w-full py-8 px-4 overflow-y-auto custom-scrollbar">
-        <div className="w-full max-w-md">
-          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl">
+      <div className="flex-1 flex flex-col relative z-10 w-full p-4 overflow-y-auto custom-scrollbar">
+        <div className="w-full max-w-md mx-auto my-auto py-8">
+          <div className="bg-[#131825]/80 backdrop-blur-xl border border-[#5B6AC2]/20 rounded-2xl p-8 shadow-2xl relative">
             {/* Logo */}
             <div className="flex justify-center mb-8">
               <div className="w-72 h-44 flex items-center justify-center">
