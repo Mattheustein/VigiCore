@@ -28,7 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '../components/ui/dropdown-menu';
 import { AuthService } from '../../services/auth';
-import { ElasticsearchService, AuthLog, setGlobalTimeFilter, getGlobalTimeFilter } from '../../services/elasticsearch';
+import { ElasticsearchService, AuthLog, setGlobalTimeFilter, getGlobalTimeFilter, setGlobalTenant, getGlobalTenant } from '../../services/elasticsearch';
 import profilePic from '../../assets/profile-pic.png';
 import logo from '../../assets/logo-alt.png';
 import logoIcon from '../../assets/logo-icon.png';
@@ -44,10 +44,16 @@ export function DashboardLayout() {
   const [isSearching, setIsSearching] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [timeFilter, setTimeFilterState] = useState(getGlobalTimeFilter());
+  const [currentCompany, setCurrentCompany] = useState(getGlobalTenant());
 
   const handleFilterChange = (filter: string) => {
     setTimeFilterState(filter);
     setGlobalTimeFilter(filter);
+  };
+
+  const handleTenantChange = (company: string) => {
+    setCurrentCompany(company);
+    setGlobalTenant(company);
   };
 
   useEffect(() => {
@@ -221,29 +227,35 @@ export function DashboardLayout() {
             {/* Company/Tenant Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="hidden lg:flex h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E]">
-                  <Globe className="w-3.5 h-3.5 mr-2 text-[#5B6AC2]" />
-                  Global Analytics Corp
-                  <ChevronDown className="w-3.5 h-3.5 ml-2" />
+                <Button variant="outline" className="hidden lg:flex h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E] max-w-[200px] truncate">
+                  <Globe className="w-3.5 h-3.5 mr-2 text-[#5B6AC2] shrink-0" />
+                  <span className="truncate">{currentCompany}</span>
+                  <ChevronDown className="w-3.5 h-3.5 ml-2 shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
                 <DropdownMenuLabel className="font-semibold text-xs text-gray-500 uppercase tracking-wider">Select Client View</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
-                {[
-                  'Global Analytics Corp',
-                  'Apex Financial Services',
-                  'Quantum Data Systems',
-                  'Nova Technologies',
-                  'Horizon Healthcare',
-                  'Pinnacle Aerospace',
-                  'Vertex E-Commerce',
-                  'Nexus Energy Systems'
-                ].map(company => (
-                  <DropdownMenuItem key={company} onClick={() => { }} className="hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E] text-sm">
-                    {company}
-                  </DropdownMenuItem>
-                ))}
+                <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
+                  {[
+                    'Global Analytics Corp',
+                    'Apex Financial Services',
+                    'Quantum Data Systems',
+                    'Nova Technologies',
+                    'Horizon Healthcare',
+                    'Pinnacle Aerospace',
+                    'Vertex E-Commerce',
+                    'Nexus Energy Systems'
+                  ].map(company => (
+                    <DropdownMenuItem
+                      key={company}
+                      onClick={() => handleTenantChange(company)}
+                      className={`hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E] text-sm ${company === currentCompany ? 'text-white bg-[#1A1F2E]/80 border-l-2 border-[#5B6AC2]' : ''}`}
+                    >
+                      {company}
+                    </DropdownMenuItem>
+                  ))}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
 

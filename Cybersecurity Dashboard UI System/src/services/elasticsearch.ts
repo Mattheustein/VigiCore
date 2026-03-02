@@ -147,6 +147,8 @@ initFirestoreLogs();
 
 
 let currentTimeFilter = 'All time';
+let currentTenant = 'Global Analytics Corp';
+const tenantLogsCache: Record<string, AuthLog[]> = {};
 
 export const setGlobalTimeFilter = (filter: string) => {
     currentTimeFilter = filter;
@@ -155,8 +157,25 @@ export const setGlobalTimeFilter = (filter: string) => {
 
 export const getGlobalTimeFilter = () => currentTimeFilter;
 
+export const setGlobalTenant = (tenant: string) => {
+    currentTenant = tenant;
+    window.dispatchEvent(new Event('tenantChange'));
+};
+
+export const getGlobalTenant = () => currentTenant;
+
 const getFilteredLogs = (): AuthLog[] => {
-    if (currentTimeFilter === 'All time') return mockLogs;
+    let baseLogs = mockLogs;
+
+    if (currentTenant !== 'Global Analytics Corp') {
+        if (!tenantLogsCache[currentTenant]) {
+            // Generate unique data profile for secondary tenants
+            tenantLogsCache[currentTenant] = generateInitialLogs(Math.floor(Math.random() * 300) + 150);
+        }
+        baseLogs = tenantLogsCache[currentTenant];
+    }
+
+    if (currentTimeFilter === 'All time') return baseLogs;
     const now = Date.now();
     const thresholds: Record<string, number> = {
         'Last hour': 60 * 60 * 1000,
@@ -170,14 +189,14 @@ const getFilteredLogs = (): AuthLog[] => {
     if (currentTimeFilter === 'Today') {
         const startOfToday = new Date();
         startOfToday.setHours(0, 0, 0, 0);
-        return mockLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
     }
 
     const threshold = thresholds[currentTimeFilter];
     if (threshold) {
-        return mockLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
     }
-    return mockLogs;
+    return baseLogs;
 };
 
 const getBucketConfig = () => {
