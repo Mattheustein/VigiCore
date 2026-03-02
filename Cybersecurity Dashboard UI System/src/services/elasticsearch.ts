@@ -105,9 +105,9 @@ const initFirestoreLogs = async () => {
     // Increased the fetch limit to 5,000 records dynamically, preventing out of memory on UI while storing infinity on DB
     const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
 
-    onSnapshot(q, (snapshot) => {
+    onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
-        snapshot.forEach(docSnap => {
+        snapshot.forEach((docSnap: any) => {
             const data = docSnap.data();
             logsFromDB.push({
                 id: docSnap.id,
@@ -140,7 +140,7 @@ const initFirestoreLogs = async () => {
             // Dispatch event to make UI update its cache if observing the array change manually.
             window.dispatchEvent(new Event('logsDatabaseUpdated'));
         }
-    }, (error) => console.log('Firestore listener error:', error));
+    }, (error: any) => console.log('Firestore listener error:', error));
 };
 
 initFirestoreLogs();
