@@ -323,8 +323,8 @@ export function MainDashboard() {
                   className="border-b border-[#5B6AC2]/10 hover:bg-[#1A1F2E]/50 transition-colors cursor-pointer"
                   onClick={() =>
                     setSelectedAlert({
-                      type: 'Brute Force Attack',
-                      timestamp: new Date().toISOString(),
+                      type: item.type || 'Brute Force Attack',
+                      timestamp: item.timestamp || new Date().toISOString(),
                       ip: item.ip,
                       user: item.user,
                       attempts: item.attempts,

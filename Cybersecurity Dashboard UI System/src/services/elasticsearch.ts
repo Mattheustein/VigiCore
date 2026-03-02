@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { app } from './auth';
 
 export interface FailedLogin {
@@ -32,8 +32,10 @@ export interface AuthEvent {
 // Database Connection
 const db = getFirestore(app);
 const LOGS_COL = collection(db, 'authLogs');
+const RULES_COL = collection(db, 'detectionRules');
 
 let mockLogs: AuthLog[] = [];
+let detectionRulesData: any[] = [];
 
 // Shared Mock Entities for Variety
 const maliciousIPs = [
@@ -143,7 +145,46 @@ const initFirestoreLogs = async () => {
     }, (error: any) => console.log('Firestore listener error:', error));
 };
 
+const initFirestoreRules = async () => {
+    onSnapshot(RULES_COL, (snapshot: any) => {
+        const rulesFromDB: any[] = [];
+        snapshot.forEach((docSnap: any) => {
+            const data = docSnap.data();
+            rulesFromDB.push({
+                id: docSnap.id,
+                name: data.name,
+                description: data.description,
+                status: data.status,
+                severity: data.severity,
+                type: data.type
+            });
+        });
+
+        if (rulesFromDB.length === 0 && !localStorage.getItem('vigicore_seeded_rules')) {
+            console.log('Seeding initial Detection Rules to Firebase...');
+            localStorage.setItem('vigicore_seeded_rules', 'true');
+            const initialRules = [
+                { name: 'Brute Force Prevention', description: 'Blocks IP after 5 failed login attempts within 5 minutes.', status: 'Active', severity: 'High', type: 'Authentication' },
+                { name: 'Malicious IP Blocking', description: 'Automatically drops packets from known malicious subnets (Threat Intel).', status: 'Active', severity: 'Critical', type: 'Network' },
+                { name: 'Geo-Fencing (Strict)', description: 'Alerts on any login attempt originating from outside North America.', status: 'Inactive', severity: 'Medium', type: 'Authentication' },
+                { name: 'SQL Injection Signature Detection', description: 'Inspects HTTP payloads for common SQLi syntax near login endpoints.', status: 'Active', severity: 'High', type: 'Application' },
+                { name: 'Rate Limiting (API)', description: 'Limits requests to 100/sec per client IP to prevent simple DDoS.', status: 'Active', severity: 'Medium', type: 'Network' },
+            ];
+            const batch = writeBatch(db);
+            initialRules.forEach(rule => {
+                const docRef = doc(RULES_COL);
+                batch.set(docRef, rule);
+            });
+            batch.commit().catch(console.error);
+        } else {
+            detectionRulesData = rulesFromDB;
+            window.dispatchEvent(new Event('rulesDatabaseUpdated'));
+        }
+    });
+};
+
 initFirestoreLogs();
+initFirestoreRules();
 
 
 let currentTimeFilter = 'All time';
@@ -322,9 +363,24 @@ export const ElasticsearchService = {
     getSuspiciousIPs: async (): Promise<any[]> => {
         const topIPs = await ElasticsearchService.getTopSourceIPs();
 
+        const attackTypes = [
+            'Brute Force Attack',
+            'SQL Injection Attempt',
+            'DDoS Attempt',
+            'Port Scan',
+            'Credential Stuffing',
+            'Malware Beaconing',
+            'Command Injection',
+            'Cross-Site Scripting (XSS)'
+        ];
+
         return Promise.resolve(topIPs.map(ipData => {
             const lastLog = getFilteredLogs().find(l => l.sourceIp === ipData.ip && l.result === 'Failed');
             const targetUser = lastLog?.user || 'unknown';
+
+            // Generate a deterministic attack type based on IP string
+            const charSum = ipData.ip.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
+            const type = attackTypes[charSum % attackTypes.length];
 
             return {
                 ip: ipData.ip,
@@ -332,7 +388,8 @@ export const ElasticsearchService = {
                 user: targetUser,
                 status: ipData.attempts > 150 ? 'Blocked' : 'Monitoring',
                 risk: ipData.attempts > 150 ? 'High' : ipData.attempts > 50 ? 'Medium' : 'Low',
-                timestamp: lastLog?.timestamp || new Date().toISOString()
+                timestamp: lastLog?.timestamp || new Date().toISOString(),
+                type: type
             };
         }));
     },
@@ -445,6 +502,24 @@ export const ElasticsearchService = {
                 description: `Unauthorized access attempt detected from ${log.sourceIp} targeting user ${log.user}.`
             };
         }));
+    },
+
+    getDetectionRules: async (): Promise<any[]> => {
+        return Promise.resolve(detectionRulesData);
+    },
+
+    createDetectionRule: async (rule: any): Promise<void> => {
+        await addDoc(RULES_COL, rule);
+    },
+
+    updateDetectionRuleStatus: async (id: string, newStatus: string): Promise<void> => {
+        const ruleDoc = doc(db, 'detectionRules', id);
+        await updateDoc(ruleDoc, { status: newStatus });
+    },
+
+    deleteDetectionRule: async (id: string): Promise<void> => {
+        const ruleDoc = doc(db, 'detectionRules', id);
+        await deleteDoc(ruleDoc);
     },
 
     checkHealth: async () => {

@@ -8,6 +8,8 @@ import { IPIntelligencePage } from './pages/IPIntelligencePage';
 import { AlertsPage } from './pages/AlertsPage';
 import { SystemHealthPage } from './pages/SystemHealthPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { NetworkTrafficPage } from './pages/NetworkTrafficPage';
+import { DetectionRulesPage } from './pages/DetectionRulesPage';
 
 export const router = createBrowserRouter([
   {
@@ -41,6 +43,14 @@ export const router = createBrowserRouter([
       {
         path: 'system-health',
         Component: SystemHealthPage,
+      },
+      {
+        path: 'network',
+        Component: NetworkTrafficPage,
+      },
+      {
+        path: 'rules',
+        Component: DetectionRulesPage,
       },
       {
         path: 'settings',

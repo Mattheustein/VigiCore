@@ -1,4 +1,5 @@
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
+import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
   FileText,
@@ -14,6 +15,7 @@ import {
   LogOut,
   Clock,
   ChevronDown,
+  Network
 } from 'lucide-react';
 import { StatusBadge } from '../components/StatusBadge';
 import { Input } from '../components/ui/input';
@@ -93,18 +95,22 @@ export function DashboardLayout() {
     navigate('/');
   };
 
+  const { t, i18n } = useTranslation();
+
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/dashboard/auth-logs', label: 'Authentication Logs', icon: FileText },
-    { path: '/dashboard/suspicious-activity', label: 'Suspicious Activity', icon: AlertTriangle },
-    { path: '/dashboard/ip-intelligence', label: 'IP Intelligence', icon: Globe },
-    { path: '/dashboard/alerts', label: 'Alerts', icon: Bell },
-    { path: '/dashboard/system-health', label: 'System Health', icon: Activity },
-    { path: '/dashboard/settings', label: 'Settings', icon: Settings },
+    { path: '/dashboard', label: t('Dashboard'), icon: LayoutDashboard },
+    { path: '/dashboard/auth-logs', label: t('Authentication Logs'), icon: FileText },
+    { path: '/dashboard/suspicious-activity', label: t('Suspicious Activity'), icon: AlertTriangle },
+    { path: '/dashboard/ip-intelligence', label: t('IP Intelligence'), icon: Globe },
+    { path: '/dashboard/alerts', label: t('Alerts'), icon: Bell },
+    { path: '/dashboard/system-health', label: t('System Health'), icon: Activity },
+    { path: '/dashboard/network', label: t('Network Traffic'), icon: Network },
+    { path: '/dashboard/rules', label: t('Detection Rules'), icon: Shield },
+    { path: '/dashboard/settings', label: t('Settings'), icon: Settings },
   ];
 
   return (
-    <div className="min-h-screen w-full overflow-x-hidden bg-[#0A0E1A] dark">
+    <div className={`min-h-screen w-full overflow-x-hidden bg-[#0A0E1A] dark ${i18n.language === 'ar' ? 'rtl' : 'ltr'}`} dir={i18n.language === 'ar' ? 'rtl' : 'ltr'}>
       {/* Sidebar */}
       <aside
         style={{ backgroundColor: '#131825' }}
@@ -256,6 +262,33 @@ export function DashboardLayout() {
                     </DropdownMenuItem>
                   ))}
                 </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Language Selection */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="hidden sm:flex h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E]">
+                  <Globe className="w-3.5 h-3.5 mr-2 text-[#60A5FA]" />
+                  {i18n.language.toUpperCase()}
+                  <ChevronDown className="w-3.5 h-3.5 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+                {[
+                  { code: 'en', label: 'English' },
+                  { code: 'es', label: 'Español' },
+                  { code: 'ar', label: 'العربية' },
+                  { code: 'fr', label: 'Français' }
+                ].map(lang => (
+                  <DropdownMenuItem
+                    key={lang.code}
+                    onClick={() => i18n.changeLanguage(lang.code)}
+                    className="hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E]"
+                  >
+                    {lang.label}
+                  </DropdownMenuItem>
+                ))}
               </DropdownMenuContent>
             </DropdownMenu>
 

@@ -34,7 +34,7 @@ export function SuspiciousActivityPage() {
       const mappedEvents = data.map((item: any, index: number) => ({
         id: `susp-${index}`,
         timestamp: item.timestamp,
-        type: 'Brute Force / Failed Logins',
+        type: item.type || 'Brute Force / Failed Logins',
         sourceIp: item.ip,
         targetUser: item.user,
         attempts: item.attempts,
@@ -42,9 +42,9 @@ export function SuspiciousActivityPage() {
         risk: item.risk,
         host: 'ubuntu-server', // Placeholder until host info is added to agg
         details: [
-          `Detected ${item.attempts} failed login attempts`,
-          `Last attempt at ${new Date(item.timestamp).toLocaleTimeString()}`,
-          `Targeting user: ${item.user}`
+          `Detected ${item.attempts} indicators of compromise (${item.type || 'Anomalous Activity'})`,
+          `Last activity recorded at ${new Date(item.timestamp).toLocaleTimeString()}`,
+          `Targeting user/resource: ${item.user}`
         ]
       }));
       setSuspiciousEvents(mappedEvents);
