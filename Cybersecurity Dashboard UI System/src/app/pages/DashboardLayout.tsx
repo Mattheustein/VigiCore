@@ -162,8 +162,8 @@ export function DashboardLayout() {
       {/* Main Content (Block element automatically fills space minus margin) */}
       <div className={`transition-all duration-300 flex flex-col min-h-screen ${sidebarOpen ? 'ml-0 md:ml-64' : 'ml-0 md:ml-20'}`}>
         {/* Top Bar */}
-        <header className="h-20 bg-[#131825] border-b border-[#5B6AC2]/20 px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-2 md:gap-4 flex-1">
+        <header className="sticky top-0 z-[90] h-20 bg-[#131825]/95 backdrop-blur-md border-b border-[#5B6AC2]/20 px-4 md:px-6 flex items-center justify-between gap-4 md:gap-8">
+          <div className="flex items-center gap-4 md:gap-6 flex-1">
             <Button
               variant="ghost"
               size="icon"
@@ -224,7 +224,7 @@ export function DashboardLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-3 md:gap-5">
             {/* System Status - hidden on small mobile */}
             <div className="hidden sm:block">
               <StatusBadge status="secure" label="System Secure" />

@@ -33,7 +33,7 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl bg-[#131825] border-[#5B6AC2]/30 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[90vw] sm:max-w-[700px] md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-[#131825] border-[#5B6AC2]/30 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center justify-between">
             <span className="flex items-center gap-3">
@@ -106,18 +106,17 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
           <div className="p-6 bg-[#1A1F2E]/50 rounded-lg border border-[#5B6AC2]/20">
             <div className="flex items-center gap-2 mb-4">
               <Activity className="w-5 h-5 text-[#E91E63]" />
-              <h4 className="font-semibold">Risk Score</h4>
+              <h4 className="font-semibold md:text-lg">Risk Score</h4>
             </div>
             <div className="relative">
               <div className="w-full h-3 bg-[#0A0E1A] rounded-full overflow-hidden">
                 <div
-                  className={`h-full rounded-full transition-all ${
-                    alert.risk === 'High'
-                      ? 'bg-gradient-to-r from-red-600 to-red-400'
-                      : alert.risk === 'Medium'
+                  className={`h-full rounded-full transition-all ${alert.risk === 'High'
+                    ? 'bg-gradient-to-r from-red-600 to-red-400'
+                    : alert.risk === 'Medium'
                       ? 'bg-gradient-to-r from-amber-600 to-amber-400'
                       : 'bg-gradient-to-r from-green-600 to-green-400'
-                  }`}
+                    }`}
                   style={{ width: `${riskScore}%` }}
                 />
               </div>
@@ -131,8 +130,8 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
 
           {/* Attack Timeline */}
           <div className="p-6 bg-[#1A1F2E]/50 rounded-lg border border-[#5B6AC2]/20">
-            <h4 className="font-semibold mb-4">Attack Timeline (Last 90 minutes)</h4>
-            <ResponsiveContainer width="100%" height={150}>
+            <h4 className="font-semibold mb-4 md:text-lg">Attack Timeline (Last 90 minutes)</h4>
+            <ResponsiveContainer width="100%" height={250}>
               <LineChart data={miniTimelineData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#5B6AC2" opacity={0.1} />
                 <XAxis dataKey="time" stroke="#9CA3AF" fontSize={12} />
@@ -158,9 +157,9 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
 
           {/* Full Log Message */}
           <div className="p-4 bg-[#0A0E1A] rounded-lg border border-[#5B6AC2]/20">
-            <p className="text-gray-400 text-sm mb-2">Full Log Message</p>
-            <pre className="text-xs text-gray-300 overflow-x-auto font-mono">
-{`[${new Date(alert.timestamp).toISOString()}] SSHD[12345]: Failed password for ${alert.user} from ${alert.ip} port 52314 ssh2
+            <p className="text-gray-400 text-sm mb-2 md:text-base">Full Log Message</p>
+            <pre className="text-xs md:text-sm text-gray-300 overflow-x-auto font-mono">
+              {`[${new Date(alert.timestamp).toISOString()}] SSHD[12345]: Failed password for ${alert.user} from ${alert.ip} port 52314 ssh2
 [${new Date(alert.timestamp).toISOString()}] SSHD[12346]: Connection closed by authenticating user ${alert.user} ${alert.ip} port 52314 [preauth]
 [${new Date(alert.timestamp).toISOString()}] SSHD[12347]: Failed password for ${alert.user} from ${alert.ip} port 52315 ssh2
 Pattern detected: ${alert.attempts} failed attempts within 5 minutes
