@@ -218,11 +218,40 @@ export function DashboardLayout() {
               <StatusBadge status="secure" label="System Secure" />
             </div>
 
+            {/* Company/Tenant Selector */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="hidden lg:flex h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E]">
+                  <Globe className="w-3.5 h-3.5 mr-2 text-[#5B6AC2]" />
+                  Global Analytics Corp
+                  <ChevronDown className="w-3.5 h-3.5 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+                <DropdownMenuLabel className="font-semibold text-xs text-gray-500 uppercase tracking-wider">Select Client View</DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
+                {[
+                  'Global Analytics Corp',
+                  'Apex Financial Services',
+                  'Quantum Data Systems',
+                  'Nova Technologies',
+                  'Horizon Healthcare',
+                  'Pinnacle Aerospace',
+                  'Vertex E-Commerce',
+                  'Nexus Energy Systems'
+                ].map(company => (
+                  <DropdownMenuItem key={company} onClick={() => { }} className="hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E] text-sm">
+                    {company}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             {/* Time Filter */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-9 px-3 text-xs bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-gray-300 hover:text-white hover:bg-[#1A1F2E]">
-                  <Clock className="w-3.5 h-3.5 mr-2" />
+                  <Clock className="w-3.5 h-3.5 mr-2 text-[#E91E63]" />
                   {timeFilter}
                   <ChevronDown className="w-3.5 h-3.5 ml-2" />
                 </Button>
