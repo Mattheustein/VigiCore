@@ -33,7 +33,7 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="w-[90vw] sm:max-w-[700px] md:max-w-4xl lg:max-w-5xl xl:max-w-6xl bg-[#131825] border-[#5B6AC2]/30 text-white max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] sm:max-w-[700px] lg:max-w-4xl bg-[#131825] border-[#5B6AC2]/30 text-white max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl flex items-center justify-between">
             <span className="flex items-center gap-3">
@@ -42,14 +42,6 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
               </div>
               Alert Details
             </span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-              className="text-gray-400 hover:text-white"
-            >
-              <X className="w-5 h-5" />
-            </Button>
           </DialogTitle>
         </DialogHeader>
 
