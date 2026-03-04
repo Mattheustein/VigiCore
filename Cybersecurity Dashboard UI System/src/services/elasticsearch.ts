@@ -104,8 +104,8 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Removed the fetch limit based on user request (set to 1,000,000)
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(1000000));
+    // Removed the fetch limit entirely based on user request to remove cap
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
