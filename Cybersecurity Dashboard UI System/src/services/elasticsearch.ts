@@ -104,8 +104,8 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Removed the fetch limit entirely based on user request to remove cap
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'));
+    // Re-added limit based on user request to be safely over 100000 without crashing
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(100005));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
@@ -190,6 +190,27 @@ initFirestoreRules();
 let currentTimeFilter = 'All time';
 let currentTenant = 'Global Analytics Corp';
 const tenantLogsCache: Record<string, AuthLog[]> = {};
+
+// Background generator for secondary tenants to make them update automatically
+setInterval(() => {
+    let updated = false;
+    Object.keys(tenantLogsCache).forEach(tenant => {
+        // Randomly decide whether to add a log in this tick to create organically varied traffic
+        if (Math.random() > 0.3) {
+            const newLog = generateInitialLogs(1)[0];
+            newLog.timestamp = new Date().toISOString();
+            tenantLogsCache[tenant].unshift(newLog);
+            if (tenantLogsCache[tenant].length > 100000) {
+                tenantLogsCache[tenant].pop(); // Keep within safe memory bounds
+            }
+            updated = true;
+        }
+    });
+
+    if (updated && currentTenant !== 'Global Analytics Corp') {
+        window.dispatchEvent(new Event('logsDatabaseUpdated'));
+    }
+}, 3000);
 
 export const setGlobalTimeFilter = (filter: string) => {
     currentTimeFilter = filter;
