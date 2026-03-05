@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc, updateDoc, deleteDoc, getCountFromServer, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc, updateDoc, deleteDoc, getCountFromServer, getDocs, enableIndexedDbPersistence } from 'firebase/firestore';
 import { app } from './auth';
 
 export interface FailedLogin {
@@ -31,6 +31,17 @@ export interface AuthEvent {
 
 // Database Connection
 const db = getFirestore(app);
+
+// Enable persistent offline caching to fix display drops (blank screen) if quota limits are temporarily hit or connection drops
+try {
+    enableIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') console.warn('Multiple tabs open, persistence restricted.');
+        else if (err.code === 'unimplemented') console.warn('Browser missing persistence support.');
+    });
+} catch (e) {
+    console.warn("Could not enable persistence natively:", e);
+}
+
 const LOGS_COL = collection(db, 'authLogs');
 const RULES_COL = collection(db, 'detectionRules');
 
