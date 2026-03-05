@@ -216,7 +216,6 @@ setInterval(async () => {
     });
 
     // Handle organic traffic for the primary tenant
-    let globalUpdated = false;
     const numNewLogs = Math.floor(Math.random() * 11) + 50;
     const newLogs = generateInitialLogs(numNewLogs);
 
@@ -239,10 +238,9 @@ setInterval(async () => {
         console.error('Firebase burst upload failed. Logs not saved.', error);
     }
 
-    if ((tenantUpdated && currentTenant !== 'Global Analytics Corp') || (globalUpdated && currentTenant === 'Global Analytics Corp')) {
+    if (tenantUpdated && currentTenant !== 'Global Analytics Corp') {
         // Sort the array by timestamp before dispatching to ensure the UI stays ordered
-        if (tenantUpdated) tenantLogsCache[currentTenant]?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        if (globalUpdated) mockLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        tenantLogsCache[currentTenant]?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }
 }, 5 * 60 * 1000);
