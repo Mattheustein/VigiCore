@@ -327,59 +327,69 @@ const getBucketConfig = () => {
     return { intervals, bucketSize, formatTime };
 };
 
+let lastScaleRatio = 1;
+let lastScaleTime = 0;
+let lastTrueTotal = 0;
+
+const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
+    if (Date.now() - lastScaleTime < 5000) return { ratio: lastScaleRatio, total: lastTrueTotal };
+
+    let trueTotal = getFilteredLogs().length;
+    if (currentTenant === 'Global Analytics Corp') {
+        try {
+            let baseQuery: any = LOGS_COL;
+            if (currentTimeFilter !== 'All time') {
+                const now = Date.now();
+                const thresholds: Record<string, number> = {
+                    'Last hour': 60 * 60 * 1000,
+                    'Today': 24 * 60 * 60 * 1000,
+                    'This week': 7 * 24 * 60 * 60 * 1000,
+                    'This month': 30 * 24 * 60 * 60 * 1000,
+                    'This quarter': 90 * 24 * 60 * 60 * 1000,
+                    'This year': 365 * 24 * 60 * 60 * 1000,
+                };
+
+                let thresholdDate = new Date();
+                if (currentTimeFilter === 'Today') {
+                    thresholdDate.setHours(0, 0, 0, 0);
+                } else if (thresholds[currentTimeFilter]) {
+                    thresholdDate = new Date(now - thresholds[currentTimeFilter]);
+                }
+                baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
+            }
+            const snap = await getCountFromServer(baseQuery);
+            trueTotal = snap.data().count;
+        } catch (error) {
+            console.error("Firebase true total fetch failed:", error);
+        }
+    }
+
+    const localTotal = getFilteredLogs().length || 1;
+    lastScaleRatio = trueTotal / localTotal;
+    lastTrueTotal = trueTotal;
+    lastScaleTime = Date.now();
+
+    return { ratio: lastScaleRatio, total: lastTrueTotal };
+};
+
 export const ElasticsearchService = {
     getAuthLogs: async (size: number = 50): Promise<AuthLog[]> => {
         return Promise.resolve(getFilteredLogs().slice(0, size));
     },
 
     getAuthStats: async () => {
-        let trueTotal = getFilteredLogs().length;
-
-        // Ensure real-time global logs are measured physically against Firebase counting API
-        if (currentTenant === 'Global Analytics Corp') {
-            try {
-                let baseQuery: any = LOGS_COL;
-                if (currentTimeFilter !== 'All time') {
-                    const now = Date.now();
-                    const thresholds: Record<string, number> = {
-                        'Last hour': 60 * 60 * 1000,
-                        'Today': 24 * 60 * 60 * 1000,
-                        'This week': 7 * 24 * 60 * 60 * 1000,
-                        'This month': 30 * 24 * 60 * 60 * 1000,
-                        'This quarter': 90 * 24 * 60 * 60 * 1000,
-                        'This year': 365 * 24 * 60 * 60 * 1000,
-                    };
-
-                    let thresholdDate = new Date();
-                    if (currentTimeFilter === 'Today') {
-                        thresholdDate.setHours(0, 0, 0, 0);
-                    } else if (thresholds[currentTimeFilter]) {
-                        thresholdDate = new Date(now - thresholds[currentTimeFilter]);
-                    }
-                    baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
-                }
-                const snap = await getCountFromServer(baseQuery);
-                trueTotal = snap.data().count;
-            } catch (error) {
-                console.error("Firebase true total fetch failed:", error);
-            }
-        }
-
+        const { ratio, total } = await getScaleRatio();
         const localLogs = getFilteredLogs();
-        const localTotal = localLogs.length || 1; // prevent divide by zero
 
         const localSuccess = localLogs.filter(l => l.result === 'Success').length;
         const localFailed = localLogs.filter(l => l.result === 'Failed').length;
         const localPublicKey = localLogs.filter(l => l.method === 'publickey').length;
 
-        // mathematically project the exact global true count subset ratios to prevent strict composite index requirements on Firestore
-        const scaleRatio = trueTotal / localTotal;
-
         return {
-            total: trueTotal,
-            success: Math.round(localSuccess * scaleRatio),
-            failed: Math.round(localFailed * scaleRatio),
-            publickey: Math.round(localPublicKey * scaleRatio),
+            total: total,
+            success: Math.round(localSuccess * ratio),
+            failed: Math.round(localFailed * ratio),
+            publickey: Math.round(localPublicKey * ratio),
         };
     },
 
@@ -400,6 +410,7 @@ export const ElasticsearchService = {
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const now = new Date();
         const { intervals, bucketSize, formatTime } = getBucketConfig();
+        const { ratio } = await getScaleRatio();
 
         const buckets = Array.from({ length: intervals }).map((_, i) => {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
@@ -412,7 +423,7 @@ export const ElasticsearchService = {
 
             return {
                 time: formatTime(bucketEnd),
-                attempts
+                attempts: Math.round(attempts * ratio)
             };
         });
 
@@ -422,13 +433,14 @@ export const ElasticsearchService = {
     getTopSourceIPs: async (): Promise<TopIP[]> => {
         const failedLogs = getFilteredLogs().filter(log => log.result === 'Failed');
         const counts: Record<string, number> = {};
+        const { ratio } = await getScaleRatio();
 
         failedLogs.forEach(log => {
             counts[log.sourceIp] = (counts[log.sourceIp] || 0) + 1;
         });
 
         const sorted = Object.entries(counts)
-            .map(([ip, attempts]) => ({ ip, attempts }))
+            .map(([ip, attempts]) => ({ ip, attempts: Math.round(attempts * ratio) }))
             .sort((a, b) => b.attempts - a.attempts)
             .slice(0, 5);
 
@@ -438,6 +450,7 @@ export const ElasticsearchService = {
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
         const now = new Date();
         const { intervals, bucketSize, formatTime } = getBucketConfig();
+        const { ratio } = await getScaleRatio();
 
         const buckets = Array.from({ length: intervals }).map((_, i) => {
             const bucketStart = new Date(now.getTime() - (intervals - i) * bucketSize);
@@ -450,7 +463,7 @@ export const ElasticsearchService = {
 
             return {
                 time: formatTime(bucketEnd),
-                events
+                events: Math.round(events * ratio)
             };
         });
 
@@ -458,12 +471,13 @@ export const ElasticsearchService = {
     },
 
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
+        const { ratio } = await getScaleRatio();
         const successCount = getFilteredLogs().filter(l => l.result === 'Success').length;
         const failureCount = getFilteredLogs().filter(l => l.result === 'Failed').length;
 
         return Promise.resolve([
-            { name: 'Success', value: successCount, color: '#10B981' },
-            { name: 'Failed', value: failureCount, color: '#EF4444' },
+            { name: 'Success', value: Math.round(successCount * ratio), color: '#10B981' },
+            { name: 'Failed', value: Math.round(failureCount * ratio), color: '#EF4444' },
         ]);
     },
 
@@ -573,6 +587,7 @@ export const ElasticsearchService = {
     },
 
     getAlertStats: async (): Promise<any> => {
+        const { ratio } = await getScaleRatio();
         const fullAlerts = getFilteredLogs().filter(l => l.risk === 'High' || l.result === 'Failed');
         let active = 0, monitoring = 0, resolved = 0;
 
@@ -583,10 +598,10 @@ export const ElasticsearchService = {
         });
 
         return Promise.resolve({
-            total: fullAlerts.length,
-            active,
-            monitoring,
-            resolved
+            total: Math.round(fullAlerts.length * ratio),
+            active: Math.round(active * ratio),
+            monitoring: Math.round(monitoring * ratio),
+            resolved: Math.round(resolved * ratio)
         });
     },
 
