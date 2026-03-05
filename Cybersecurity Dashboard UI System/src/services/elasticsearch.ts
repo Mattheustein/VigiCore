@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc, updateDoc, deleteDoc, getCountFromServer, getDocs, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, onSnapshot, query, orderBy, limit as limitDocs, writeBatch, doc, updateDoc, deleteDoc, getCountFromServer, getDocs, enableIndexedDbPersistence, where } from 'firebase/firestore';
 import { app } from './auth';
 
 export interface FailedLogin {
@@ -333,12 +333,54 @@ export const ElasticsearchService = {
     },
 
     getAuthStats: async () => {
-        return Promise.resolve({
-            total: getFilteredLogs().length,
-            success: getFilteredLogs().filter(l => l.result === 'Success').length,
-            failed: getFilteredLogs().filter(l => l.result === 'Failed').length,
-            publickey: getFilteredLogs().filter(l => l.method === 'publickey').length,
-        });
+        let trueTotal = getFilteredLogs().length;
+
+        // Ensure real-time global logs are measured physically against Firebase counting API
+        if (currentTenant === 'Global Analytics Corp') {
+            try {
+                let baseQuery: any = LOGS_COL;
+                if (currentTimeFilter !== 'All time') {
+                    const now = Date.now();
+                    const thresholds: Record<string, number> = {
+                        'Last hour': 60 * 60 * 1000,
+                        'Today': 24 * 60 * 60 * 1000,
+                        'This week': 7 * 24 * 60 * 60 * 1000,
+                        'This month': 30 * 24 * 60 * 60 * 1000,
+                        'This quarter': 90 * 24 * 60 * 60 * 1000,
+                        'This year': 365 * 24 * 60 * 60 * 1000,
+                    };
+
+                    let thresholdDate = new Date();
+                    if (currentTimeFilter === 'Today') {
+                        thresholdDate.setHours(0, 0, 0, 0);
+                    } else if (thresholds[currentTimeFilter]) {
+                        thresholdDate = new Date(now - thresholds[currentTimeFilter]);
+                    }
+                    baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
+                }
+                const snap = await getCountFromServer(baseQuery);
+                trueTotal = snap.data().count;
+            } catch (error) {
+                console.error("Firebase true total fetch failed:", error);
+            }
+        }
+
+        const localLogs = getFilteredLogs();
+        const localTotal = localLogs.length || 1; // prevent divide by zero
+
+        const localSuccess = localLogs.filter(l => l.result === 'Success').length;
+        const localFailed = localLogs.filter(l => l.result === 'Failed').length;
+        const localPublicKey = localLogs.filter(l => l.method === 'publickey').length;
+
+        // mathematically project the exact global true count subset ratios to prevent strict composite index requirements on Firestore
+        const scaleRatio = trueTotal / localTotal;
+
+        return {
+            total: trueTotal,
+            success: Math.round(localSuccess * scaleRatio),
+            failed: Math.round(localFailed * scaleRatio),
+            publickey: Math.round(localPublicKey * scaleRatio),
+        };
     },
 
     searchLogs: async (query: string): Promise<AuthLog[]> => {
