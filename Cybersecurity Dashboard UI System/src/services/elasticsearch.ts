@@ -107,8 +107,8 @@ let isFirebaseFallback = false;
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Re-added limit based on user request to a safe baseline of ~7,000 for stability and quota protection
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(7000));
+    // Set limit to 100,005 so it pulls the actual full amount of logs available (e.g. 15k) up to the cap
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(100005));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
