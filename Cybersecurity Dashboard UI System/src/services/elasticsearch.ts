@@ -116,9 +116,9 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Firebase has a hard system limit of 10,000 for a single real-time structured query.
-    // Setting this to its absolute maximum to fetch the true history without triggering a database crash.
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(10000));
+    // Firebase has a hard query limit of 10,000, and a daily READ quota of 50,000 (across all reloads).
+    // Setting this capacity to 2,000 on load ensures huge impressive data while allowing 25 physical page reloads a day globally through June!
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(2000));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
@@ -207,20 +207,19 @@ let currentTimeFilter = 'All time';
 let currentTenant = 'Global Analytics Corp';
 const tenantLogsCache: Record<string, AuthLog[]> = {};
 
-// Background generator: bursts 50-60 new logs natively every 5 minutes
+// Background generator: sustainably bursts 5-15 new logs every 15 minutes to preserve 20k daily WRITE limits over 4 months
 setInterval(async () => {
     let tenantUpdated = false;
     Object.keys(tenantLogsCache).forEach(tenant => {
-        const numNewLogs = Math.floor(Math.random() * 11) + 50; // 50 to 60 logs
+        const numNewLogs = Math.floor(Math.random() * 11) + 5; // 5 to 15 logs realistically
         const newLogs = generateInitialLogs(numNewLogs);
 
         newLogs.forEach(log => {
-            const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000); // Random offset within the last 5 minutes
+            const timeOffset = Math.floor(Math.random() * 15 * 60 * 1000); // Random offset within the last 15 minutes
             log.timestamp = new Date(Date.now() - timeOffset).toISOString();
             tenantLogsCache[tenant].unshift(log);
         });
 
-        // Keep within safe memory bounds natively
         if (tenantLogsCache[tenant].length > 100005) {
             tenantLogsCache[tenant].splice(100005);
         }
@@ -228,11 +227,11 @@ setInterval(async () => {
     });
 
     // Handle organic traffic for the primary tenant
-    const numNewLogs = Math.floor(Math.random() * 11) + 50;
+    const numNewLogs = Math.floor(Math.random() * 11) + 5;
     const newLogs = generateInitialLogs(numNewLogs);
 
     newLogs.forEach(log => {
-        const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000);
+        const timeOffset = Math.floor(Math.random() * 15 * 60 * 1000); // Random offset within 15 mins
         log.timestamp = new Date(Date.now() - timeOffset).toISOString();
     });
 
@@ -255,7 +254,7 @@ setInterval(async () => {
         tenantLogsCache[currentTenant]?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }
-}, 5 * 60 * 1000);
+}, 15 * 60 * 1000); // Fired every 15 minutes
 
 export const setGlobalTimeFilter = (filter: string) => {
     currentTimeFilter = filter;
