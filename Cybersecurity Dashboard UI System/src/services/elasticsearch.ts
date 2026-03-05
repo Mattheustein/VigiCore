@@ -103,8 +103,6 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
     return logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 };
 
-let isFirebaseFallback = false;
-
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
     // Set limit to 100,005 so it pulls the actual full amount of logs available (e.g. 15k) up to the cap
@@ -146,14 +144,8 @@ const initFirestoreLogs = async () => {
             window.dispatchEvent(new Event('logsDatabaseUpdated'));
         }
     }, (error: any) => {
-        console.error('Firestore listener error (Quota likely exceeded):', error);
-        isFirebaseFallback = true;
-        // Fallback: If Firebase crashes or rate-limits, gracefully generate the ~7,000 logs locally so the UI never breaks.
-        if (mockLogs.length === 0) {
-            console.log('Firebase quota exceeded! Generating 7,000 local mock logs aggressively...');
-            mockLogs = generateInitialLogs(7000).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            window.dispatchEvent(new Event('logsDatabaseUpdated'));
-        }
+        console.error('Firestore listener error:', error);
+        // We do NOT inject fake fallback data here, as the user wants accurate, synchronized, real data counts at all times.
     });
 };
 
@@ -233,41 +225,18 @@ setInterval(async () => {
         log.timestamp = new Date(Date.now() - timeOffset).toISOString();
     });
 
-    if (isFirebaseFallback) {
-        // We are offline; simulate natively in UI memory
-        if (mockLogs.length > 100) {
-            newLogs.forEach(log => mockLogs.unshift(log));
-            if (mockLogs.length > 100005) mockLogs.splice(100005);
-            globalUpdated = true;
-        }
-    } else {
-        // We are online; broadcast the burst securely to Firebase
-        try {
-            const batch = writeBatch(db);
-            newLogs.forEach(log => {
-                const docRef = doc(LOGS_COL);
-                log.id = docRef.id;
-                batch.set(docRef, log);
-            });
-            await batch.commit();
-
-            // Perform rolling database maintenance so we don't blow past the 100k safety cap
-            // 20% chance to analyze and prune during a burst cycle to prevent runaway DB lock
-            if (Math.random() < 0.2) {
-                const countSnap = await getCountFromServer(LOGS_COL);
-                if (countSnap.data().count > 99000) {
-                    const oldestQuery = query(LOGS_COL, orderBy('timestamp', 'asc'), limitDocs(500));
-                    const oldestSnap = await getDocs(oldestQuery);
-                    const delBatch = writeBatch(db);
-                    oldestSnap.forEach(docSnap => delBatch.delete(docSnap.ref));
-                    await delBatch.commit();
-                }
-            }
-        } catch (error) {
-            console.error('Firebase burst upload failed, likely offline bounds error.', error);
-            // If failed, seamlessly trigger fallback mode constraints
-            isFirebaseFallback = true;
-        }
+    // We are online; broadcast the burst securely to Firebase.
+    // We intentionally DO NOT prune, delete, or fallback. The user requested we never mess with actual totals.
+    try {
+        const batch = writeBatch(db);
+        newLogs.forEach(log => {
+            const docRef = doc(LOGS_COL);
+            log.id = docRef.id;
+            batch.set(docRef, log);
+        });
+        await batch.commit();
+    } catch (error) {
+        console.error('Firebase burst upload failed. Logs not saved.', error);
     }
 
     if ((tenantUpdated && currentTenant !== 'Global Analytics Corp') || (globalUpdated && currentTenant === 'Global Analytics Corp')) {
