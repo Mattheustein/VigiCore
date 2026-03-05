@@ -63,7 +63,8 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
     const now = new Date();
 
     for (let i = 0; i < count; i++) {
-        const timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
+        // Generate logs spanning up to the last 30 days to ensure historical graphs populate correctly
+        const timeOffset = Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000);
         const eventDate = new Date(now.getTime() - timeOffset);
 
         const isMalicious = Math.random() > 0.6; // 60% of logs are malicious
@@ -92,7 +93,7 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
             user,
             sourceIp: ip,
             host,
-            result,
+            result: result as 'Success' | 'Failed',
             method,
             port,
             risk
@@ -199,40 +200,51 @@ let currentTimeFilter = 'All time';
 let currentTenant = 'Global Analytics Corp';
 const tenantLogsCache: Record<string, AuthLog[]> = {};
 
-// Background generator for secondary tenants and offline fallback
+// Background generator: bursts 50-60 new logs natively every 5 minutes
 setInterval(() => {
     let tenantUpdated = false;
     Object.keys(tenantLogsCache).forEach(tenant => {
-        // Randomly decide whether to add a log in this tick to create organically varied traffic
-        if (Math.random() > 0.3) {
-            const newLog = generateInitialLogs(1)[0];
-            newLog.timestamp = new Date().toISOString();
-            tenantLogsCache[tenant].unshift(newLog);
-            if (tenantLogsCache[tenant].length > 100005) {
-                tenantLogsCache[tenant].pop(); // Keep within safe memory bounds
-            }
-            tenantUpdated = true;
+        const numNewLogs = Math.floor(Math.random() * 11) + 50; // 50 to 60 logs
+        const newLogs = generateInitialLogs(numNewLogs);
+
+        newLogs.forEach(log => {
+            const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000); // Random offset within the last 5 minutes
+            log.timestamp = new Date(Date.now() - timeOffset).toISOString();
+            tenantLogsCache[tenant].unshift(log);
+        });
+
+        // Keep within safe memory bounds natively
+        if (tenantLogsCache[tenant].length > 100005) {
+            tenantLogsCache[tenant].splice(100005);
         }
+        tenantUpdated = true;
     });
 
-    // If Firebase connection broke and we are relying on local fallback (large log pool), animate it too
+    // If Firebase connection broke and we are relying on local fallback (large log pool), do the same for global
     let globalUpdated = false;
     if (mockLogs.length > 100) {
-        if (Math.random() > 0.3) {
-            const newLog = generateInitialLogs(1)[0];
-            newLog.timestamp = new Date().toISOString();
-            mockLogs.unshift(newLog);
-            if (mockLogs.length > 100005) {
-                mockLogs.pop();
-            }
-            globalUpdated = true;
+        const numNewLogs = Math.floor(Math.random() * 11) + 50;
+        const newLogs = generateInitialLogs(numNewLogs);
+
+        newLogs.forEach(log => {
+            const timeOffset = Math.floor(Math.random() * 5 * 60 * 1000);
+            log.timestamp = new Date(Date.now() - timeOffset).toISOString();
+            mockLogs.unshift(log);
+        });
+
+        if (mockLogs.length > 100005) {
+            mockLogs.splice(100005);
         }
+        globalUpdated = true;
     }
 
     if ((tenantUpdated && currentTenant !== 'Global Analytics Corp') || (globalUpdated && currentTenant === 'Global Analytics Corp')) {
+        // Sort the array by timestamp before dispatching to ensure the UI stays ordered
+        if (tenantUpdated) tenantLogsCache[currentTenant]?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        if (globalUpdated) mockLogs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }
-}, 3000);
+}, 5 * 60 * 1000);
 
 export const setGlobalTimeFilter = (filter: string) => {
     currentTimeFilter = filter;
