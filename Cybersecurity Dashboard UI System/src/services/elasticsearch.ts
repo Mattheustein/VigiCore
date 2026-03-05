@@ -116,8 +116,9 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Set limit to 100,005 so it pulls the actual full amount of logs available (e.g. 15k) up to the cap
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(100005));
+    // Firebase has a hard system limit of 10,000 for a single real-time structured query.
+    // Setting this to its absolute maximum to fetch the true history without triggering a database crash.
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(10000));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
