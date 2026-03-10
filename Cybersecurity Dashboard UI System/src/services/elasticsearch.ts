@@ -79,11 +79,20 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
         let maxOffset = now.getTime() - startOfYear;
         if (maxOffset <= 0) maxOffset = 30 * 24 * 60 * 60 * 1000;
 
-        let timeOffset = Math.floor(Math.random() * maxOffset);
+        let timeOffset = 0;
+        const rand = Math.random();
 
-        // Add a strong bias towards the last 7 days so Recent and Today filters still look active
-        if (Math.random() > 0.6) {
+        // 15% in the last 24 hours (Today active)
+        if (rand < 0.15) {
+            timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
+        }
+        // 25% in the last 7 days (This week active)
+        else if (rand < 0.40) {
             timeOffset = Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
+        }
+        // 60% perfectly distributed since Jan 1st (gives Jan, Feb, Mar robust realistic density)
+        else {
+            timeOffset = Math.floor(Math.random() * maxOffset);
         }
 
         const eventDate = new Date(now.getTime() - timeOffset);
@@ -315,51 +324,66 @@ const getFilteredLogs = (): AuthLog[] => {
     return baseLogs;
 };
 
-const getBucketConfig = () => {
+const getBuckets = () => {
     const now = new Date();
-    // Default All time / This year
-    let startTime = new Date(now.getFullYear(), 0, 1).getTime(); // Jan 1st
-    let endTime = new Date(now.getFullYear() + 1, 0, 1).getTime(); // Next Jan 1st
-    let intervals = 12;
+    const buckets: { start: number, end: number, label: string }[] = [];
 
-    if (currentTimeFilter === 'Last hour') {
-        startTime = Math.floor(now.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000); // Start of current hour
-        endTime = startTime + 60 * 60 * 1000;
-        intervals = 6;
-    } else if (currentTimeFilter === 'Today') {
-        startTime = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
-        endTime = startTime + 24 * 60 * 60 * 1000;
-        intervals = 6;
-    } else if (currentTimeFilter === 'This week') {
-        const day = now.getDay();
-        const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Monday
-        const startOfWeek = new Date(now.setDate(diff));
-        startOfWeek.setHours(0, 0, 0, 0);
-        startTime = startOfWeek.getTime();
-        endTime = startTime + 7 * 24 * 60 * 60 * 1000;
-        intervals = 7;
-    } else if (currentTimeFilter === 'This month') {
-        startTime = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        endTime = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-        intervals = 6;
+    if (currentTimeFilter === 'This year' || currentTimeFilter === 'All time') {
+        for (let i = 0; i < 12; i++) {
+            const start = new Date(now.getFullYear(), i, 1).getTime();
+            const end = new Date(now.getFullYear(), i + 1, 1).getTime();
+            const label = new Date(now.getFullYear(), i, 1).toLocaleDateString([], { month: 'short', year: '2-digit' });
+            buckets.push({ start, end, label });
+        }
     } else if (currentTimeFilter === 'This quarter') {
         const currentQuarter = Math.floor(now.getMonth() / 3);
-        startTime = new Date(now.getFullYear(), currentQuarter * 3, 1).getTime();
-        endTime = new Date(now.getFullYear(), (currentQuarter + 1) * 3, 1).getTime();
-        intervals = 3;
+        for (let i = 0; i < 3; i++) {
+            const monthOffset = currentQuarter * 3 + i;
+            const start = new Date(now.getFullYear(), monthOffset, 1).getTime();
+            const end = new Date(now.getFullYear(), monthOffset + 1, 1).getTime();
+            const label = new Date(now.getFullYear(), monthOffset, 1).toLocaleDateString([], { month: 'short', year: '2-digit' });
+            buckets.push({ start, end, label });
+        }
+    } else if (currentTimeFilter === 'This month') {
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
+        const bucketSize = (monthEnd - monthStart) / 6;
+        for (let i = 0; i < 6; i++) {
+            const start = monthStart + i * bucketSize;
+            const end = start + bucketSize;
+            const label = new Date(start).toLocaleDateString([], { month: 'short', day: 'numeric' });
+            buckets.push({ start, end, label });
+        }
+    } else if (currentTimeFilter === 'This week') {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const weekStart = new Date(now.setDate(diff));
+        weekStart.setHours(0, 0, 0, 0);
+        for (let i = 0; i < 7; i++) {
+            const start = weekStart.getTime() + i * 24 * 60 * 60 * 1000;
+            const end = start + 24 * 60 * 60 * 1000;
+            const label = new Date(start).toLocaleDateString([], { weekday: 'short' });
+            buckets.push({ start, end, label });
+        }
+    } else if (currentTimeFilter === 'Today') {
+        const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        for (let i = 0; i < 6; i++) {
+            const start = dayStart + i * 4 * 60 * 60 * 1000;
+            const end = start + 4 * 60 * 60 * 1000;
+            const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            buckets.push({ start, end, label });
+        }
+    } else if (currentTimeFilter === 'Last hour') {
+        const hourStart = Math.floor(now.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
+        for (let i = 0; i < 6; i++) {
+            const start = hourStart + i * 10 * 60 * 1000;
+            const end = start + 10 * 60 * 1000;
+            const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            buckets.push({ start, end, label });
+        }
     }
 
-    const bucketSize = (endTime - startTime) / intervals;
-
-    const formatTime = (date: Date) => {
-        const duration = endTime - startTime;
-        if (duration <= 24 * 60 * 60 * 1000) return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        if (duration <= 7 * 24 * 60 * 60 * 1000) return date.toLocaleDateString([], { weekday: 'short' });
-        if (duration <= 95 * 24 * 60 * 60 * 1000) return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        return date.toLocaleDateString([], { month: 'short', year: '2-digit' });
-    };
-
-    return { intervals, bucketSize, startTime, endTime, formatTime };
+    return buckets;
 };
 
 let lastScaleTime = 0;
@@ -492,25 +516,22 @@ export const ElasticsearchService = {
     },
 
     getFailedLogins: async (): Promise<FailedLogin[]> => {
-        const { intervals, bucketSize, startTime, formatTime } = getBucketConfig();
+        const bucketsDef = getBuckets();
         const { ratio } = await getScaleRatio();
 
-        const buckets = Array.from({ length: intervals }).map((_, i) => {
-            const bucketStart = new Date(startTime + i * bucketSize);
-            const bucketEnd = new Date(startTime + (i + 1) * bucketSize);
-
+        const formattedBuckets = bucketsDef.map(bucket => {
             const attempts = getFilteredLogs().filter(log => {
                 const logTime = new Date(log.timestamp).getTime();
-                return log.result === 'Failed' && logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
+                return log.result === 'Failed' && logTime >= bucket.start && logTime < bucket.end;
             }).length;
 
             return {
-                time: formatTime(bucketStart),
+                time: bucket.label,
                 attempts: Math.round(attempts * ratio)
             };
         });
 
-        return Promise.resolve(buckets);
+        return Promise.resolve(formattedBuckets);
     },
 
     getTopSourceIPs: async (): Promise<TopIP[]> => {
@@ -531,25 +552,22 @@ export const ElasticsearchService = {
     },
 
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
-        const { intervals, bucketSize, startTime, formatTime } = getBucketConfig();
+        const bucketsDef = getBuckets();
         const { ratio } = await getScaleRatio();
 
-        const buckets = Array.from({ length: intervals }).map((_, i) => {
-            const bucketStart = new Date(startTime + i * bucketSize);
-            const bucketEnd = new Date(startTime + (i + 1) * bucketSize);
-
+        const formattedBuckets = bucketsDef.map(bucket => {
             const events = getFilteredLogs().filter(log => {
                 const logTime = new Date(log.timestamp).getTime();
-                return logTime >= bucketStart.getTime() && logTime < bucketEnd.getTime();
+                return logTime >= bucket.start && logTime < bucket.end;
             }).length;
 
             return {
-                time: formatTime(bucketStart),
+                time: bucket.label,
                 events: Math.round(events * ratio)
             };
         });
 
-        return Promise.resolve(buckets);
+        return Promise.resolve(formattedBuckets);
     },
 
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
