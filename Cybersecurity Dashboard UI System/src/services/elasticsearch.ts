@@ -362,13 +362,21 @@ const getBucketConfig = () => {
     return { intervals, bucketSize, startTime, endTime, formatTime };
 };
 
-let lastScaleRatio = 1;
 let lastScaleTime = 0;
 let lastTrueTotal = 0;
 
 const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
-    if (Date.now() - lastScaleTime < 5000) return { ratio: lastScaleRatio, total: lastTrueTotal };
+    const currentLocalTotal = getFilteredLogs().length || 1;
 
+    // Avoid fetching from Firebase more than once every 5 seconds
+    if (Date.now() - lastScaleTime < 5000) {
+        let trueTotal = lastTrueTotal;
+        // Safety bound: trueTotal cannot be less than local items we actually have
+        if (trueTotal < currentLocalTotal) trueTotal = currentLocalTotal;
+        return { ratio: trueTotal / currentLocalTotal, total: trueTotal };
+    }
+
+    lastScaleTime = Date.now();
     let trueTotal = getFilteredLogs().length;
     if (currentTenant === 'Global Analytics Corp') {
         try {
@@ -431,11 +439,11 @@ const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
 
     const localTotal = getFilteredLogs().length || 1;
     if (trueTotal < localTotal) trueTotal = localTotal; // Strict safety bound
-    lastScaleRatio = trueTotal / localTotal;
+
     lastTrueTotal = trueTotal;
     lastScaleTime = Date.now();
 
-    return { ratio: lastScaleRatio, total: lastTrueTotal };
+    return { ratio: trueTotal / localTotal, total: trueTotal };
 };
 
 export const ElasticsearchService = {

@@ -155,7 +155,7 @@ export function MainDashboard() {
               <p className="text-amber-400 text-xs mt-1">Requires attention</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <span className="text-2xl">\u26A0\uFE0F</span>
+              <AlertTriangle className="w-6 h-6 text-amber-500" />
             </div>
           </div>
         </Card>
