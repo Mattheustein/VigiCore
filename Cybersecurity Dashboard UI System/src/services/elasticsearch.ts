@@ -409,18 +409,28 @@ export const ElasticsearchService = {
     },
 
     getAuthStats: async () => {
-        const { ratio, total } = await getScaleRatio();
+        const { total } = await getScaleRatio();
         const localLogs = getFilteredLogs();
+        const localTotal = localLogs.length || 1;
 
         const localSuccess = localLogs.filter(l => l.result === 'Success').length;
         const localFailed = localLogs.filter(l => l.result === 'Failed').length;
         const localPublicKey = localLogs.filter(l => l.method === 'publickey').length;
 
+        // Derive proportions from local data, then scale from total to guarantee consistency
+        const failedProportion = localFailed / localTotal;
+        const successProportion = localSuccess / localTotal;
+        const publickeyProportion = localPublicKey / localTotal;
+
+        const scaledFailed = Math.round(total * failedProportion);
+        const scaledSuccess = Math.round(total * successProportion);
+        const scaledPublickey = Math.round(total * publickeyProportion);
+
         return {
             total: total,
-            success: Math.round(localSuccess * ratio),
-            failed: Math.round(localFailed * ratio),
-            publickey: Math.round(localPublicKey * ratio),
+            success: scaledSuccess,
+            failed: scaledFailed,
+            publickey: scaledPublickey,
         };
     },
 

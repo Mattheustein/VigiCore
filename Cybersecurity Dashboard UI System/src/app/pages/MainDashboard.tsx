@@ -20,7 +20,7 @@ import {
 import { AlertTriangle, Shield, TrendingUp, Activity } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { AlertModal } from '../components/AlertModal';
-import { ElasticsearchService, FailedLogin, TopIP, AuthEvent } from '../../services/elasticsearch';
+import { ElasticsearchService, FailedLogin, TopIP, AuthEvent, getGlobalTimeFilter } from '../../services/elasticsearch';
 
 // Mock data removed - using live data from ElasticsearchService
 
@@ -36,6 +36,13 @@ export function MainDashboard() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [activeAlertCount, setActiveAlertCount] = useState(0);
   const [authStats, setAuthStats] = useState({ total: 0, success: 0, failed: 0 });
+  const [filterLabel, setFilterLabel] = useState(getGlobalTimeFilter());
+
+  useEffect(() => {
+    const onFilterChange = () => setFilterLabel(getGlobalTimeFilter());
+    window.addEventListener('timeFilterChange', onFilterChange);
+    return () => window.removeEventListener('timeFilterChange', onFilterChange);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -86,7 +93,7 @@ export function MainDashboard() {
     // Refresh every 5 seconds for live data feel
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [filterLabel]);
 
   return (
     <div className="space-y-6">
@@ -148,7 +155,7 @@ export function MainDashboard() {
               <p className="text-amber-400 text-xs mt-1">Requires attention</p>
             </div>
             <div className="w-12 h-12 rounded-full bg-amber-500/20 flex items-center justify-center">
-              <span className="text-2xl">⚠️</span>
+              <span className="text-2xl">\u26A0\uFE0F</span>
             </div>
           </div>
         </Card>
@@ -160,7 +167,7 @@ export function MainDashboard() {
         <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <div className="w-1 h-6 bg-gradient-to-b from-[#5B6AC2] to-[#E91E63] rounded-full" />
-            Failed Login Attempts (24h)
+            Failed Login Attempts ({filterLabel})
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={failedLoginData}>
@@ -191,7 +198,7 @@ export function MainDashboard() {
         <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <div className="w-1 h-6 bg-gradient-to-b from-[#E91E63] to-[#FF6B35] rounded-full" />
-            Top Source IPs (24h)
+            Top Source IPs ({filterLabel})
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={topSourceIPs} layout="vertical">
@@ -264,7 +271,7 @@ export function MainDashboard() {
         <Card className="bg-[#131825] border-[#5B6AC2]/20 p-6">
           <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
             <div className="w-1 h-6 bg-gradient-to-b from-[#FF6B35] to-[#5B6AC2] rounded-full" />
-            Authentication Timeline (24h)
+            Authentication Timeline ({filterLabel})
           </h3>
           <ResponsiveContainer width="100%" height={250}>
             <AreaChart data={authTimelineData}>
