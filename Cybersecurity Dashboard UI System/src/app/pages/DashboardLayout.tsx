@@ -239,7 +239,7 @@ export function DashboardLayout() {
                   <ChevronDown className="w-3.5 h-3.5 ml-2 shrink-0" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A] z-[100]">
                 <DropdownMenuLabel className="font-semibold text-xs text-gray-500 uppercase tracking-wider">Select Client View</DropdownMenuLabel>
                 <DropdownMenuSeparator className="bg-[#5B6AC2]/20" />
                 <div className="max-h-[300px] overflow-y-auto custom-scrollbar">
@@ -274,7 +274,7 @@ export function DashboardLayout() {
                   <ChevronDown className="w-3.5 h-3.5 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A] z-[100]">
                 {[
                   { code: 'en', label: 'English' },
                   { code: 'es', label: 'Español' },
@@ -301,7 +301,7 @@ export function DashboardLayout() {
                   <ChevronDown className="w-3.5 h-3.5 ml-2" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A]">
+              <DropdownMenuContent className="bg-[#131825] border-[#5B6AC2]/30 text-gray-300 shadow-xl shadow-[#0A0E1A] z-[100]">
                 {['Last hour', 'Today', 'This week', 'This month', 'This quarter', 'This year', 'All time'].map(filter => (
                   <DropdownMenuItem key={filter} onClick={() => handleFilterChange(filter)} className="hover:bg-[#1A1F2E] hover:text-white cursor-pointer focus:bg-[#1A1F2E]">
                     {filter}
@@ -342,7 +342,7 @@ export function DashboardLayout() {
                   </div>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-white shadow-xl shadow-[#0A0E1A]" align="end" forceMount>
+              <DropdownMenuContent className="w-56 bg-[#131825] border-[#5B6AC2]/30 text-white shadow-xl shadow-[#0A0E1A] z-[100]" align="end" forceMount>
                 <DropdownMenuLabel className="font-normal">
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">{user?.fullName || user?.username || 'Guest'}</p>
