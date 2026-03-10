@@ -345,14 +345,16 @@ const getBuckets = () => {
             buckets.push({ start, end, label });
         }
     } else if (currentTimeFilter === 'This month') {
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 1).getTime();
-        const bucketSize = (monthEnd - monthStart) / 6;
-        for (let i = 0; i < 6; i++) {
-            const start = monthStart + i * bucketSize;
-            const end = start + bucketSize;
-            const label = new Date(start).toLocaleDateString([], { month: 'short', day: 'numeric' });
+        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+        let currentDay = new Date(monthStart);
+        while (currentDay < nextMonth) {
+            const start = currentDay.getTime();
+            const end = start + 24 * 60 * 60 * 1000;
+            const label = currentDay.toLocaleDateString([], { month: 'short', day: 'numeric' });
             buckets.push({ start, end, label });
+            currentDay.setDate(currentDay.getDate() + 1);
         }
     } else if (currentTimeFilter === 'This week') {
         const day = now.getDay();
