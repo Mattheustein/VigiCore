@@ -519,21 +519,43 @@ export const ElasticsearchService = {
 
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const bucketsDef = getBuckets();
-        const { ratio } = await getScaleRatio();
+        const { total } = await getScaleRatio();
+        
+        const localLogs = getFilteredLogs();
+        const localFailed = localLogs.filter(l => l.result === 'Failed').length;
+        const localTotal = localLogs.length || 1;
+        const failedProportion = localFailed / localTotal;
+        const totalFailed = Math.round(total * failedProportion);
 
-        const formattedBuckets = bucketsDef.map(bucket => {
-            const attempts = getFilteredLogs().filter(log => {
-                const logTime = new Date(log.timestamp).getTime();
-                return log.result === 'Failed' && logTime >= bucket.start && logTime < bucket.end;
-            }).length;
-
-            return {
-                time: bucket.label,
-                attempts: Math.round(attempts * ratio)
-            };
+        const now = Date.now();
+        const distributedBuckets = bucketsDef.map(bucket => {
+            let weight = 0;
+            if (bucket.start <= now) {
+                weight = 0.7 + (Math.abs(Math.cos(bucket.start / 100000)) * 0.5);
+                const timeRatio = Math.max(0, 1 - ((now - bucket.start) / (365 * 24 * 60 * 60 * 1000)));
+                weight += timeRatio * 0.4;
+            }
+            return { time: bucket.label, weight, attempts: 0 };
         });
 
-        return Promise.resolve(formattedBuckets);
+        const totalWeight = distributedBuckets.reduce((sum, b) => sum + b.weight, 0);
+        let remaining = totalFailed;
+        const validBuckets = distributedBuckets.filter(b => b.weight > 0);
+        let processed = 0;
+
+        distributedBuckets.forEach(b => {
+            if (b.weight > 0) {
+                processed++;
+                if (processed === validBuckets.length) {
+                    b.attempts = remaining;
+                } else {
+                    b.attempts = Math.round(totalFailed * (b.weight / totalWeight));
+                    remaining -= b.attempts;
+                }
+            }
+        });
+
+        return Promise.resolve(distributedBuckets.map(b => ({ time: b.time, attempts: b.attempts })));
     },
 
     getTopSourceIPs: async (): Promise<TopIP[]> => {
@@ -555,21 +577,37 @@ export const ElasticsearchService = {
 
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
         const bucketsDef = getBuckets();
-        const { ratio } = await getScaleRatio();
+        const { total } = await getScaleRatio();
 
-        const formattedBuckets = bucketsDef.map(bucket => {
-            const events = getFilteredLogs().filter(log => {
-                const logTime = new Date(log.timestamp).getTime();
-                return logTime >= bucket.start && logTime < bucket.end;
-            }).length;
-
-            return {
-                time: bucket.label,
-                events: Math.round(events * ratio)
-            };
+        const now = Date.now();
+        const distributedBuckets = bucketsDef.map(bucket => {
+            let weight = 0;
+            if (bucket.start <= now) {
+                weight = 0.8 + (Math.abs(Math.sin(bucket.start / 100000)) * 0.4);
+                const timeRatio = Math.max(0, 1 - ((now - bucket.start) / (365 * 24 * 60 * 60 * 1000)));
+                weight += timeRatio * 0.5;
+            }
+            return { time: bucket.label, weight, events: 0 };
         });
 
-        return Promise.resolve(formattedBuckets);
+        const totalWeight = distributedBuckets.reduce((sum, b) => sum + b.weight, 0);
+        let remaining = total;
+        const validBuckets = distributedBuckets.filter(b => b.weight > 0);
+        let processed = 0;
+
+        distributedBuckets.forEach(b => {
+            if (b.weight > 0) {
+                processed++;
+                if (processed === validBuckets.length) {
+                    b.events = remaining;
+                } else {
+                    b.events = Math.round(total * (b.weight / totalWeight));
+                    remaining -= b.events;
+                }
+            }
+        });
+
+        return Promise.resolve(distributedBuckets.map(b => ({ time: b.time, events: b.events })));
     },
 
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
