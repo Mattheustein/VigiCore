@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const LOGS_COL = collection(db, 'authLogs_v2');
+const LOGS_COL = collection(db, 'authLogs_v3');
 
 const maliciousIPs = [
     '203.0.113.42', '198.51.100.23', '45.22.12.99', '101.42.15.11',
@@ -56,21 +56,22 @@ function generateInitialLogs(count: number, startTimestamp: number, endTimestamp
 }
 
 async function runSeeder() {
-    console.log('Seeding pristine 15k log history explicitly to Version 2 database...');
+    console.log('Seeding pristine 30k log history explicitly to Version 3 database...');
     const now = new Date();
     const year = now.getFullYear();
 
     const janStart = new Date(year, 0, 1).getTime();
     const janEnd = new Date(year, 1, 0, 23, 59, 59).getTime();
-    const janLogs = generateInitialLogs(4839, janStart, janEnd);
+    const janLogs = generateInitialLogs(15000, janStart, janEnd);
 
     const febStart = new Date(year, 1, 1).getTime();
     const febEnd = new Date(year, 2, 0, 23, 59, 59).getTime();
-    const febLogs = generateInitialLogs(7214, febStart, febEnd);
+    const febLogs = generateInitialLogs(15000, febStart, febEnd);
 
     const marStart = new Date(year, 2, 1).getTime();
     const marEnd = now.getTime();
-    const marLogs = generateInitialLogs(3630, marStart, marEnd);
+    // Intentionally keep March explicitly light so organic burst generator does the heavy lifting
+    const marLogs = generateInitialLogs(1500, marStart, marEnd);
 
     const initLogs = [...janLogs, ...febLogs, ...marLogs];
 
@@ -90,7 +91,7 @@ async function runSeeder() {
         }
     }
     await setBatch.commit();
-    console.log('Successfully completed uncorrupted Version 2 database seed!');
+    console.log('Successfully completed uncorrupted Version 3 database seed!');
     process.exit(0);
 }
 

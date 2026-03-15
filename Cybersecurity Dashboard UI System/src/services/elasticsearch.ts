@@ -35,7 +35,7 @@ const db = getFirestore(app);
 // Enable persistent offline caching to fix display drops (blank screen) if quota limits are temporarily hit or connection drops
 // REMOVED: User requested strictly real-time cloud data, no caching.
 
-const LOGS_COL = collection(db, 'authLogs_v2');
+const LOGS_COL = collection(db, 'authLogs_v3');
 const RULES_COL = collection(db, 'detectionRules');
 
 let mockLogs: AuthLog[] = [];
@@ -116,7 +116,7 @@ const initFirestoreLogs = async () => {
     const currentMonthIndex = nowLocal.getMonth();
     
     let historicalFallback: AuthLog[] = [];
-    const monthVolumes = [4839, 7214, 3630, 4200, 5100, 3900, 4500, 4100, 3800, 4300, 4700, 4000];
+    const monthVolumes = [15000, 15000, 1500, 4200, 5100, 3900, 4500, 4100, 3800, 4300, 4700, 4000];
     
     for (let i = 0; i <= currentMonthIndex; i++) {
         const start = new Date(currentYear, i, 1).getTime();
@@ -214,14 +214,15 @@ let currentTimeFilter = 'All time';
 let currentTenant = 'Global Analytics Corp';
 const tenantLogsCache: Record<string, AuthLog[]> = {};
 
-// Background generator: sustainably bursts 5-15 new logs every 15 minutes to preserve 20k daily WRITE limits over 4 months
+// Background generator: sustainably bursts 10-20 new logs every 5 minutes.
+// Produces ~400 logs daily, pushing the 30k database smoothly to ~70k by the June assessment.
 setInterval(async () => {
     let tenantUpdated = false;
     Object.keys(tenantLogsCache).forEach(tenant => {
-        const numNewLogs = Math.floor(Math.random() * 11) + 5; // 5 to 15 logs realistically
+        const numNewLogs = Math.floor(Math.random() * 11) + 10; // 10 to 20 logs realistically
         const now = new Date();
-        const past15Mins = now.getTime() - (15 * 60 * 1000);
-        const newLogs = generateInitialLogs(numNewLogs, past15Mins, now.getTime());
+        const past5Mins = now.getTime() - (5 * 60 * 1000);
+        const newLogs = generateInitialLogs(numNewLogs, past5Mins, now.getTime());
 
         newLogs.forEach(log => {
             tenantLogsCache[tenant].unshift(log);
@@ -234,10 +235,10 @@ setInterval(async () => {
     });
 
     // Handle organic traffic for the primary tenant
-    const numNewLogs = Math.floor(Math.random() * 11) + 5;
+    const numNewLogs = Math.floor(Math.random() * 11) + 10;
     const now = new Date();
-    const past15Mins = now.getTime() - (15 * 60 * 1000);
-    const newLogs = generateInitialLogs(numNewLogs, past15Mins, now.getTime());
+    const past5Mins = now.getTime() - (5 * 60 * 1000);
+    const newLogs = generateInitialLogs(numNewLogs, past5Mins, now.getTime());
 
     // We are online; broadcast the burst securely to Firebase.
     // We intentionally DO NOT prune, delete, or fallback. The user requested we never mess with actual totals.
@@ -258,7 +259,7 @@ setInterval(async () => {
         tenantLogsCache[currentTenant]?.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }
-}, 15 * 60 * 1000); // Fired every 15 minutes
+}, 5 * 60 * 1000); // Fired every 5 minutes
 
 export const setGlobalTimeFilter = (filter: string) => {
     currentTimeFilter = filter;
