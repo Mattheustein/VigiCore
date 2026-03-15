@@ -115,6 +115,16 @@ const generateInitialLogs = (count: number, monthStart: number, monthEnd: number
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
+    // Purge old scale caches from before the DB was re-seeded
+    if (!localStorage.getItem('vigicore_v2_db_reseed_caches_clear')) {
+        localStorage.setItem('vigicore_v2_db_reseed_caches_clear', 'true');
+        const filtersToClear = ['All time', 'This year', 'This quarter', 'This month', 'This week', 'Today', 'Last hour'];
+        filtersToClear.forEach(f => {
+            localStorage.removeItem(`vigicore_true_count_${f}`);
+            localStorage.removeItem(`vigicore_true_time_${f}`);
+        });
+    }
+
     // Force purge old DB for the distribution fix
     if (!localStorage.getItem('vigicore_v2_db_reseed')) {
         console.log('Initiating mandatory Database purge for timescale distribution update...');
@@ -337,26 +347,38 @@ const getFilteredLogs = (): AuthLog[] => {
     }
 
     if (currentTimeFilter === 'All time') return baseLogs;
-    const now = Date.now();
-    const thresholds: Record<string, number> = {
-        'Last hour': 60 * 60 * 1000,
-        'Today': 24 * 60 * 60 * 1000,
-        'This week': 7 * 24 * 60 * 60 * 1000,
-        'This month': 30 * 24 * 60 * 60 * 1000,
-        'This quarter': 90 * 24 * 60 * 60 * 1000,
-        'This year': 365 * 24 * 60 * 60 * 1000,
-    };
+    const now = new Date();
 
+    if (currentTimeFilter === 'This year') {
+        const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfYear);
+    }
+    if (currentTimeFilter === 'This quarter') {
+        const currentQuarter = Math.floor(now.getMonth() / 3);
+        const startOfQuarter = new Date(now.getFullYear(), currentQuarter * 3, 1).getTime();
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfQuarter);
+    }
+    if (currentTimeFilter === 'This month') {
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).getTime();
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfMonth);
+    }
+    if (currentTimeFilter === 'This week') {
+        const day = now.getDay();
+        const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+        const startOfWeek = new Date(now.getTime());
+        startOfWeek.setDate(diff);
+        startOfWeek.setHours(0, 0, 0, 0);
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfWeek.getTime());
+    }
     if (currentTimeFilter === 'Today') {
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday.getTime());
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfToday);
     }
-
-    const threshold = thresholds[currentTimeFilter];
-    if (threshold) {
-        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= now - threshold);
+    if (currentTimeFilter === 'Last hour') {
+        const startOfHour = now.getTime() - (60 * 60 * 1000);
+        return baseLogs.filter(l => new Date(l.timestamp).getTime() >= startOfHour);
     }
+    
     return baseLogs;
 };
 
@@ -455,22 +477,28 @@ const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
         try {
             let baseQuery: any = LOGS_COL;
             if (currentTimeFilter !== 'All time') {
-                const now = Date.now();
-                const thresholds: Record<string, number> = {
-                    'Last hour': 60 * 60 * 1000,
-                    'Today': 24 * 60 * 60 * 1000,
-                    'This week': 7 * 24 * 60 * 60 * 1000,
-                    'This month': 30 * 24 * 60 * 60 * 1000,
-                    'This quarter': 90 * 24 * 60 * 60 * 1000,
-                    'This year': 365 * 24 * 60 * 60 * 1000,
-                };
-
+                const now = new Date();
                 let thresholdDate = new Date();
-                if (currentTimeFilter === 'Today') {
+
+                if (currentTimeFilter === 'This year') {
+                    thresholdDate = new Date(now.getFullYear(), 0, 1);
+                } else if (currentTimeFilter === 'This quarter') {
+                    const currentQuarter = Math.floor(now.getMonth() / 3);
+                    thresholdDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
+                } else if (currentTimeFilter === 'This month') {
+                    thresholdDate = new Date(now.getFullYear(), now.getMonth(), 1);
+                } else if (currentTimeFilter === 'This week') {
+                    const day = now.getDay();
+                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+                    thresholdDate = new Date(now.getTime());
+                    thresholdDate.setDate(diff);
                     thresholdDate.setHours(0, 0, 0, 0);
-                } else if (thresholds[currentTimeFilter]) {
-                    thresholdDate = new Date(now - thresholds[currentTimeFilter]);
+                } else if (currentTimeFilter === 'Today') {
+                    thresholdDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                } else if (currentTimeFilter === 'Last hour') {
+                    thresholdDate = new Date(now.getTime() - (60 * 60 * 1000));
                 }
+
                 baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
             }
             const snap = await getCountFromServer(baseQuery);
