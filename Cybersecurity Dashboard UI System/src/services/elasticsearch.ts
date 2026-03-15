@@ -119,6 +119,65 @@ const initFirestoreLogs = async () => {
     // Setting this capacity to 2,000 on load ensures huge impressive data while allowing 25 physical page reloads a day globally through June!
     const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(2000));
 
+    // Force purge old DB for the distribution fix
+    if (!localStorage.getItem('vigicore_v2_db_reseed')) {
+        console.log('Initiating mandatory Database purge for timescale distribution update...');
+        localStorage.setItem('vigicore_v2_db_reseed', 'true');
+        
+        const qAll = query(LOGS_COL);
+        const snapshot = await getDocs(qAll);
+        
+        console.log(`Found ${snapshot.size} legacy logs to purge...`);
+        const MAX_BATCH_SIZE = 400; // Optimal safely batched Firebase delete
+        let batch = writeBatch(db);
+        let count = 0;
+        
+        for (const docSnap of snapshot.docs) {
+            batch.delete(docSnap.ref);
+            count++;
+            if (count % MAX_BATCH_SIZE === 0) {
+                await batch.commit();
+                batch = writeBatch(db);
+            }
+        }
+        await batch.commit(); // commit remaining
+        console.log('Database purge complete. Generating new scaled logs...');
+        
+        // Seed the explicitly scaled data
+        const now = new Date();
+        const year = now.getFullYear();
+        
+        // Build the backdated simulation metrics
+        const janStart = new Date(year, 0, 1).getTime();
+        const janEnd = new Date(year, 1, 0, 23, 59, 59).getTime();
+        const janLogs = generateInitialLogs(4839, janStart, janEnd);
+        
+        const febStart = new Date(year, 1, 1).getTime();
+        const febEnd = new Date(year, 2, 0, 23, 59, 59).getTime();
+        const febLogs = generateInitialLogs(7214, febStart, febEnd);
+        
+        const marStart = new Date(year, 2, 1).getTime();
+        const marEnd = now.getTime();
+        const marLogs = generateInitialLogs(3630, marStart, marEnd);
+
+        const initLogs = [...janLogs, ...febLogs, ...marLogs];
+
+        let writeCount = 0;
+        let setBatch = writeBatch(db);
+        for (const log of initLogs) {
+             const docRef = doc(LOGS_COL);
+             log.id = docRef.id;
+             setBatch.set(docRef, log);
+             writeCount++;
+             if (writeCount % MAX_BATCH_SIZE === 0) {
+                 await setBatch.commit();
+                 setBatch = writeBatch(db);
+             }
+        }
+        await setBatch.commit();
+        console.log('Firebase scaling re-seed fully complete.');
+    }
+
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
         snapshot.forEach((docSnap: any) => {
@@ -136,44 +195,9 @@ const initFirestoreLogs = async () => {
             });
         });
 
-        // Seed initial if absolutely empty. We seed baseline records.
-        if (logsFromDB.length === 0 && !localStorage.getItem('vigicore_seeded_firebase')) {
-            console.log('Seeding initial Firestore logs to Firebase...');
-            localStorage.setItem('vigicore_seeded_firebase', 'true'); // lock this client
-
-            const now = new Date();
-            const year = now.getFullYear();
-            
-            // Build the backdated simulation metrics
-            // January: ~5000 logs (Full month)
-            const janStart = new Date(year, 0, 1).getTime();
-            const janEnd = new Date(year, 1, 0, 23, 59, 59).getTime(); // Last day of Jan
-            const janLogs = generateInitialLogs(4839, janStart, janEnd);
-            
-            // February: ~7000 logs (Full month)
-            const febStart = new Date(year, 1, 1).getTime();
-            const febEnd = new Date(year, 2, 0, 23, 59, 59).getTime(); // Last day of Feb
-            const febLogs = generateInitialLogs(7214, febStart, febEnd);
-            
-            // March: ~3500 logs (Up to the precise current date relative to the year)
-            const marStart = new Date(year, 2, 1).getTime();
-            const marEnd = now.getTime(); // Stops generating precisely today
-            const marLogs = generateInitialLogs(3630, marStart, marEnd);
-
-            const initLogs = [...janLogs, ...febLogs, ...marLogs];
-
-            const batch = writeBatch(db);
-            initLogs.forEach(log => {
-                const docRef = doc(LOGS_COL);
-                log.id = docRef.id;
-                batch.set(docRef, log);
-            });
-            batch.commit().catch(console.error);
-        } else {
-            mockLogs = logsFromDB.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-            // Dispatch event to make UI update its cache if observing the array change manually.
-            window.dispatchEvent(new Event('logsDatabaseUpdated'));
-        }
+        // We do not run the normal seed block because the force purge handles it.
+        mockLogs = logsFromDB.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }, (error: any) => {
         console.error('Firestore listener error:', error);
         // We do NOT inject fake fallback data here, as the user wants accurate, synchronized, real data counts at all times.
