@@ -35,7 +35,7 @@ const db = getFirestore(app);
 // Enable persistent offline caching to fix display drops (blank screen) if quota limits are temporarily hit or connection drops
 // REMOVED: User requested strictly real-time cloud data, no caching.
 
-const LOGS_COL = collection(db, 'authLogs');
+const LOGS_COL = collection(db, 'authLogs_v2');
 const RULES_COL = collection(db, 'detectionRules');
 
 let mockLogs: AuthLog[] = [];
