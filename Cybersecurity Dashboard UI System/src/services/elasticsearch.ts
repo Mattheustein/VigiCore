@@ -74,28 +74,30 @@ const generateInitialLogs = (count: number = 300): AuthLog[] => {
     const now = new Date();
 
     for (let i = 0; i < count; i++) {
-        // Distribute logs dynamically across the current year to ensure "All time" graph spans Jan-Dec correctly
+        // Distribute logs dynamically across the current year
         const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
-        let maxOffset = now.getTime() - startOfYear;
-        if (maxOffset <= 0) maxOffset = 30 * 24 * 60 * 60 * 1000;
+        const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59).getTime();
 
         let timeOffset = 0;
+        let eventDate: Date;
         const rand = Math.random();
 
         // 15% in the last 24 hours (Today active)
         if (rand < 0.15) {
             timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
+            eventDate = new Date(now.getTime() - timeOffset);
         }
         // 25% in the last 7 days (This week active)
         else if (rand < 0.40) {
             timeOffset = Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
+            eventDate = new Date(now.getTime() - timeOffset);
         }
-        // 60% perfectly distributed since Jan 1st (gives Jan, Feb, Mar robust realistic density)
+        // 60% perfectly distributed throughout the entire year (Jan 1st - Dec 31st)
         else {
-            timeOffset = Math.floor(Math.random() * maxOffset);
+             // Generate a timestamp randomly between start of year and end of year
+             const randomTimeInYear = startOfYear + Math.random() * (endOfYear - startOfYear);
+             eventDate = new Date(randomTimeInYear);
         }
-
-        const eventDate = new Date(now.getTime() - timeOffset);
 
         const isMalicious = Math.random() > 0.6; // 60% of logs are malicious
         const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
