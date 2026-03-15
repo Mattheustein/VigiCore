@@ -329,7 +329,8 @@ const getBuckets = () => {
     const buckets: { start: number, end: number, label: string }[] = [];
 
     if (currentTimeFilter === 'This year' || currentTimeFilter === 'All time') {
-        for (let i = 0; i < 12; i++) {
+        const currentMonth = now.getMonth();
+        for (let i = 0; i <= currentMonth; i++) {
             const start = new Date(now.getFullYear(), i, 1).getTime();
             const end = new Date(now.getFullYear(), i + 1, 1).getTime();
             const label = new Date(now.getFullYear(), i, 1).toLocaleDateString([], { month: 'short', year: '2-digit' });
@@ -337,8 +338,11 @@ const getBuckets = () => {
         }
     } else if (currentTimeFilter === 'This quarter') {
         const currentQuarter = Math.floor(now.getMonth() / 3);
+        const startMonthOfQuarter = currentQuarter * 3;
+        const currentMonth = now.getMonth();
         for (let i = 0; i < 3; i++) {
-            const monthOffset = currentQuarter * 3 + i;
+            const monthOffset = startMonthOfQuarter + i;
+            if (monthOffset > currentMonth) break;
             const start = new Date(now.getFullYear(), monthOffset, 1).getTime();
             const end = new Date(now.getFullYear(), monthOffset + 1, 1).getTime();
             const label = new Date(now.getFullYear(), monthOffset, 1).toLocaleDateString([], { month: 'short', year: '2-digit' });
@@ -346,10 +350,10 @@ const getBuckets = () => {
         }
     } else if (currentTimeFilter === 'This month') {
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         let currentDay = new Date(monthStart);
-        while (currentDay < nextMonth) {
+        while (currentDay <= today) {
             const start = currentDay.getTime();
             const end = start + 24 * 60 * 60 * 1000;
             const label = currentDay.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -361,8 +365,13 @@ const getBuckets = () => {
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
         const weekStart = new Date(now.setDate(diff));
         weekStart.setHours(0, 0, 0, 0);
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         for (let i = 0; i < 7; i++) {
             const start = weekStart.getTime() + i * 24 * 60 * 60 * 1000;
+            if (start > today.getTime()) break;
             const end = start + 24 * 60 * 60 * 1000;
             const label = new Date(start).toLocaleDateString([], { weekday: 'short' });
             buckets.push({ start, end, label });
@@ -371,6 +380,7 @@ const getBuckets = () => {
         const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         for (let i = 0; i < 6; i++) {
             const start = dayStart + i * 4 * 60 * 60 * 1000;
+            if (start > now.getTime()) break;
             const end = start + 4 * 60 * 60 * 1000;
             const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             buckets.push({ start, end, label });
@@ -379,6 +389,7 @@ const getBuckets = () => {
         const hourStart = Math.floor(now.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
         for (let i = 0; i < 6; i++) {
             const start = hourStart + i * 10 * 60 * 1000;
+            if (start > now.getTime()) break;
             const end = start + 10 * 60 * 1000;
             const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             buckets.push({ start, end, label });
@@ -520,20 +531,23 @@ export const ElasticsearchService = {
     getFailedLogins: async (): Promise<FailedLogin[]> => {
         const bucketsDef = getBuckets();
         const { ratio } = await getScaleRatio();
+        
+        const localLogs = getFilteredLogs();
+        const localFailed = localLogs.filter(l => l.result === 'Failed');
 
-        const formattedBuckets = bucketsDef.map(bucket => {
-            const attempts = getFilteredLogs().filter(log => {
-                const logTime = new Date(log.timestamp).getTime();
-                return log.result === 'Failed' && logTime >= bucket.start && logTime < bucket.end;
+        const distributedBuckets = bucketsDef.map(bucket => {
+            const countInBucket = localFailed.filter(l => {
+                const t = new Date(l.timestamp).getTime();
+                return t >= bucket.start && t < bucket.end;
             }).length;
-
+            
             return {
                 time: bucket.label,
-                attempts: Math.round(attempts * ratio)
+                attempts: Math.round(countInBucket * ratio)
             };
         });
 
-        return Promise.resolve(formattedBuckets);
+        return Promise.resolve(distributedBuckets);
     },
 
     getTopSourceIPs: async (): Promise<TopIP[]> => {
@@ -557,19 +571,21 @@ export const ElasticsearchService = {
         const bucketsDef = getBuckets();
         const { ratio } = await getScaleRatio();
 
-        const formattedBuckets = bucketsDef.map(bucket => {
-            const events = getFilteredLogs().filter(log => {
-                const logTime = new Date(log.timestamp).getTime();
-                return logTime >= bucket.start && logTime < bucket.end;
+        const localLogs = getFilteredLogs();
+
+        const distributedBuckets = bucketsDef.map(bucket => {
+            const countInBucket = localLogs.filter(l => {
+                const t = new Date(l.timestamp).getTime();
+                return t >= bucket.start && t < bucket.end;
             }).length;
 
             return {
                 time: bucket.label,
-                events: Math.round(events * ratio)
+                events: Math.round(countInBucket * ratio)
             };
         });
 
-        return Promise.resolve(formattedBuckets);
+        return Promise.resolve(distributedBuckets);
     },
 
     getLoginDistribution: async (): Promise<{ name: string; value: number; color: string }[]> => {
