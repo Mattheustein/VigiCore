@@ -109,9 +109,9 @@ const generateInitialLogs = (count: number, monthStart: number, monthEnd: number
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
     // To ensure all dashboard numbers strictly match the live database across all users without offline caching,
-    // we query a sufficient sample set (e.g. 5000) of the most recent live data to map distributions,
-    // and rely on `getCountFromServer` for the pure total integer. 
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
+    // we query up to 20,000 of the most recent live logs directly into the client array,
+    // ensuring perfect mathematical correlation between arrays and charts.
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(20000));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
@@ -370,67 +370,11 @@ const getBuckets = () => {
     return buckets;
 };
 
-let lastScaleTime = 0;
-let lastTrueTotal = 0;
-
 const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
-    const currentLocalTotal = getFilteredLogs().length || 1;
-
-    // Avoid fetching from Firebase more than once every 5 seconds per client
-    if (Date.now() - lastScaleTime < 5000) {
-        let trueTotal = lastTrueTotal;
-        if (trueTotal < currentLocalTotal) trueTotal = currentLocalTotal;
-        return { ratio: trueTotal / currentLocalTotal, total: trueTotal };
-    }
-
-    lastScaleTime = Date.now();
-    let trueTotal = getFilteredLogs().length;
-
-    // Strict non-cached cloud request for identical global numbers
-    if (currentTenant === 'Global Analytics Corp') {
-        try {
-            let baseQuery: any = LOGS_COL;
-            if (currentTimeFilter !== 'All time') {
-                const now = new Date();
-                let thresholdDate = new Date();
-
-                if (currentTimeFilter === 'This year') {
-                    thresholdDate = new Date(now.getFullYear(), 0, 1);
-                } else if (currentTimeFilter === 'This quarter') {
-                    const currentQuarter = Math.floor(now.getMonth() / 3);
-                    thresholdDate = new Date(now.getFullYear(), currentQuarter * 3, 1);
-                } else if (currentTimeFilter === 'This month') {
-                    thresholdDate = new Date(now.getFullYear(), now.getMonth(), 1);
-                } else if (currentTimeFilter === 'This week') {
-                    const day = now.getDay();
-                    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-                    thresholdDate = new Date(now.getTime());
-                    thresholdDate.setDate(diff);
-                    thresholdDate.setHours(0, 0, 0, 0);
-                } else if (currentTimeFilter === 'Today') {
-                    thresholdDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-                } else if (currentTimeFilter === 'Last hour') {
-                    thresholdDate = new Date(now.getTime() - (60 * 60 * 1000));
-                }
-
-                baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
-            }
-            // Fetch live exact count from Firebase explicitly.
-            const snap = await getCountFromServer(baseQuery);
-            trueTotal = snap.data().count;
-        } catch (error) {
-            console.warn("Firebase true total fetch failed. Returning strictly matched local lengths.", error);
-            trueTotal = getFilteredLogs().length || 1;
-        }
-    }
-
+    // With offline caches and heuristic scaling stripped out per user request, 
+    // the true total is purely derived from the raw array fetched natively from Firebase.
     const localTotal = getFilteredLogs().length || 1;
-
-    if (trueTotal < localTotal) trueTotal = localTotal; // Scale lock
-    lastTrueTotal = trueTotal;
-    lastScaleTime = Date.now();
-
-    return { ratio: trueTotal / localTotal, total: trueTotal };
+    return { ratio: 1, total: localTotal };
 };
 
 export const ElasticsearchService = {
