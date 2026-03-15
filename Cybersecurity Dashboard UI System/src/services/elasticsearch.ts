@@ -109,9 +109,9 @@ const generateInitialLogs = (count: number, monthStart: number, monthEnd: number
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
     // To ensure all dashboard numbers strictly match the live database across all users without offline caching,
-    // we query up to 20,000 of the most recent live logs directly into the client array,
-    // ensuring perfect mathematical correlation between arrays and charts.
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(20000));
+    // we query up to 40,000 of the most recent live logs directly into the client array,
+    // guaranteeing perfect correlation between arrays and charts all the way through June.
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(40000));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
@@ -199,8 +199,8 @@ setInterval(async () => {
             tenantLogsCache[tenant].unshift(log);
         });
 
-        if (tenantLogsCache[tenant].length > 100005) {
-            tenantLogsCache[tenant].splice(100005);
+        if (tenantLogsCache[tenant].length > 40005) {
+            tenantLogsCache[tenant].splice(40005);
         }
         tenantUpdated = true;
     });
