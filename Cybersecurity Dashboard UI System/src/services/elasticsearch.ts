@@ -516,20 +516,9 @@ const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
                 const organicOfflineGrowth = Math.floor(hoursPassed * 40); // 40 logs per hour
                 trueTotal = parseInt(cachedCount, 10) + organicOfflineGrowth;
             } else {
-                // Precise mathematical heuristics derived from 40 logs/hr if Firebase Quota runs out before a physical local cache is made
-                const timeSinceCrashHours = Math.max(0, (Date.now() - 1741144000000) / (1000 * 60 * 60)); // March 5th Crash Timestamp
-                const organicGrowth = Math.floor(timeSinceCrashHours * 40);
-
-                const heuristics: Record<string, number> = {
-                    'All time': 15684 + organicGrowth,
-                    'This year': 15684 + organicGrowth,
-                    'This quarter': 15684 + organicGrowth,
-                    'This month': 12450 + organicGrowth,
-                    'This week': 6520 + organicGrowth,
-                    'Today': 840 + organicGrowth,
-                    'Last hour': 42 + Math.floor((Date.now() - 1741144000000) / (1000 * 60)) // logs per minute
-                };
-                trueTotal = heuristics[currentTimeFilter] || (15684 + organicGrowth);
+                // Since the recent Hybrid Cache update, our local array is highly accurate.
+                // We no longer need to use archaic heuristics if the quota is hit before cache logic hooks.
+                trueTotal = getFilteredLogs().length || 1;
 
                 // Initialize the physical cache for the next cycle
                 localStorage.setItem(`vigicore_true_count_${currentTimeFilter}`, trueTotal.toString());
