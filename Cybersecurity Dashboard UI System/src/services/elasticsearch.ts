@@ -33,14 +33,7 @@ export interface AuthEvent {
 const db = getFirestore(app);
 
 // Enable persistent offline caching to fix display drops (blank screen) if quota limits are temporarily hit or connection drops
-try {
-    enableIndexedDbPersistence(db).catch((err) => {
-        if (err.code === 'failed-precondition') console.warn('Multiple tabs open, persistence restricted.');
-        else if (err.code === 'unimplemented') console.warn('Browser missing persistence support.');
-    });
-} catch (e) {
-    console.warn("Could not enable persistence natively:", e);
-}
+// REMOVED: User requested strictly real-time cloud data, no caching.
 
 const LOGS_COL = collection(db, 'authLogs');
 const RULES_COL = collection(db, 'detectionRules');
@@ -115,87 +108,10 @@ const generateInitialLogs = (count: number, monthStart: number, monthEnd: number
 
 // Initialize Firestore Listening
 const initFirestoreLogs = async () => {
-    // Purge old scale caches from before the DB was re-seeded
-    if (!localStorage.getItem('vigicore_v2_db_reseed_caches_clear')) {
-        localStorage.setItem('vigicore_v2_db_reseed_caches_clear', 'true');
-        const filtersToClear = ['All time', 'This year', 'This quarter', 'This month', 'This week', 'Today', 'Last hour'];
-        filtersToClear.forEach(f => {
-            localStorage.removeItem(`vigicore_true_count_${f}`);
-            localStorage.removeItem(`vigicore_true_time_${f}`);
-        });
-    }
-
-    // Force purge old DB for the distribution fix
-    if (!localStorage.getItem('vigicore_v2_db_reseed')) {
-        console.log('Initiating mandatory Database purge for timescale distribution update...');
-        localStorage.setItem('vigicore_v2_db_reseed', 'true');
-        
-        const qAll = query(LOGS_COL);
-        const snapshot = await getDocs(qAll);
-        
-        console.log(`Found ${snapshot.size} legacy logs to purge...`);
-        const MAX_BATCH_SIZE = 400; // Optimal safely batched Firebase delete
-        let batch = writeBatch(db);
-        let count = 0;
-        
-        for (const docSnap of snapshot.docs) {
-            batch.delete(docSnap.ref);
-            count++;
-            if (count % MAX_BATCH_SIZE === 0) {
-                await batch.commit();
-                batch = writeBatch(db);
-            }
-        }
-        await batch.commit(); // commit remaining
-        console.log('Database purge complete. Generating new scaled logs...');
-        
-        // Seed the explicitly scaled data
-        const now = new Date();
-        const year = now.getFullYear();
-        
-        // Build the backdated simulation metrics
-        const janStart = new Date(year, 0, 1).getTime();
-        const janEnd = new Date(year, 1, 0, 23, 59, 59).getTime();
-        const janLogs = generateInitialLogs(4839, janStart, janEnd);
-        
-        const febStart = new Date(year, 1, 1).getTime();
-        const febEnd = new Date(year, 2, 0, 23, 59, 59).getTime();
-        const febLogs = generateInitialLogs(7214, febStart, febEnd);
-        
-        const marStart = new Date(year, 2, 1).getTime();
-        const marEnd = now.getTime();
-        const marLogs = generateInitialLogs(3630, marStart, marEnd);
-
-        const initLogs = [...janLogs, ...febLogs, ...marLogs];
-
-        let writeCount = 0;
-        let setBatch = writeBatch(db);
-        for (const log of initLogs) {
-             const docRef = doc(LOGS_COL);
-             log.id = docRef.id;
-             setBatch.set(docRef, log);
-             writeCount++;
-             if (writeCount % MAX_BATCH_SIZE === 0) {
-                 await setBatch.commit();
-                 setBatch = writeBatch(db);
-             }
-        }
-        await setBatch.commit();
-        console.log('Firebase scaling re-seed fully complete.');
-    }
-
-    // Rather than just querying the last 2000 points in March, we inject local historical records.
-    // We bind it identically to the Firebase server seed so the UI accurately displays Jan/Feb/March locally,
-    // scaling it up seamlessly by using the actual true Firebase count multiplier.
-    const nowLocal = new Date();
-    const currentYear = nowLocal.getFullYear();
-    const l_janLogs = generateInitialLogs(4839, new Date(currentYear, 0, 1).getTime(), new Date(currentYear, 1, 0, 23, 59, 59).getTime());
-    const l_febLogs = generateInitialLogs(7214, new Date(currentYear, 1, 1).getTime(), new Date(currentYear, 2, 0, 23, 59, 59).getTime());
-    const l_marLogs = generateInitialLogs(3630, new Date(currentYear, 2, 1).getTime(), nowLocal.getTime());
-    const historicalFallback = [...l_janLogs, ...l_febLogs, ...l_marLogs].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    // Still fetch 2,000 recent live logs for real-time reactivity, but map them OVER the historical set
-    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(2000));
+    // To ensure all dashboard numbers strictly match the live database across all users without offline caching,
+    // we query a sufficient sample set (e.g. 5000) of the most recent live data to map distributions,
+    // and rely on `getCountFromServer` for the pure total integer. 
+    const q = query(LOGS_COL, orderBy('timestamp', 'desc'), limitDocs(5000));
 
     onSnapshot(q, (snapshot: any) => {
         const logsFromDB: AuthLog[] = [];
@@ -214,15 +130,12 @@ const initFirestoreLogs = async () => {
             });
         });
 
-        // Merge realtime fetched Data onto Historical Backing (ensuring no dupes via rough timeframe splice)
-        const oldestDBTime = logsFromDB.length > 0 ? new Date(logsFromDB[logsFromDB.length - 1].timestamp).getTime() : 0;
-        const filteredHistorical = historicalFallback.filter(h => new Date(h.timestamp).getTime() < oldestDBTime);
-        
-        mockLogs = [...logsFromDB, ...filteredHistorical].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        // Use strictly the live database sample, no local hybrids.
+        mockLogs = logsFromDB.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     }, (error: any) => {
         console.error('Firestore listener error:', error);
-        mockLogs = historicalFallback; // Safety fallback
+        mockLogs = []; // Strictly empty on error per user request for pure live parity
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
     });
 };
@@ -463,16 +376,17 @@ let lastTrueTotal = 0;
 const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
     const currentLocalTotal = getFilteredLogs().length || 1;
 
-    // Avoid fetching from Firebase more than once every 5 seconds
+    // Avoid fetching from Firebase more than once every 5 seconds per client
     if (Date.now() - lastScaleTime < 5000) {
         let trueTotal = lastTrueTotal;
-        // Safety bound: trueTotal cannot be less than local items we actually have
         if (trueTotal < currentLocalTotal) trueTotal = currentLocalTotal;
         return { ratio: trueTotal / currentLocalTotal, total: trueTotal };
     }
 
     lastScaleTime = Date.now();
     let trueTotal = getFilteredLogs().length;
+
+    // Strict non-cached cloud request for identical global numbers
     if (currentTenant === 'Global Analytics Corp') {
         try {
             let baseQuery: any = LOGS_COL;
@@ -501,38 +415,18 @@ const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
 
                 baseQuery = query(LOGS_COL, where('timestamp', '>=', thresholdDate.toISOString()));
             }
+            // Fetch live exact count from Firebase explicitly.
             const snap = await getCountFromServer(baseQuery);
             trueTotal = snap.data().count;
-            localStorage.setItem(`vigicore_true_count_${currentTimeFilter}`, trueTotal.toString());
         } catch (error) {
-            console.warn("Firebase true total fetch failed (Quota Exhausted). Falling back to offline persistent sync.");
-            const cachedCount = localStorage.getItem(`vigicore_true_count_${currentTimeFilter}`);
-
-            if (cachedCount) {
-                // To keep the dashboard feeling natively alive during a 24-hr Firebase backend freeze,
-                // we mathematically calculate how much time has passed and precisely project the offline growth.
-                const lastUpdated = parseInt(localStorage.getItem(`vigicore_true_time_${currentTimeFilter}`) || Date.now().toString(), 10);
-                const hoursPassed = Math.max(0, (Date.now() - lastUpdated) / (1000 * 60 * 60));
-                const organicOfflineGrowth = Math.floor(hoursPassed * 40); // 40 logs per hour
-                trueTotal = parseInt(cachedCount, 10) + organicOfflineGrowth;
-            } else {
-                // Since the recent Hybrid Cache update, our local array is highly accurate.
-                // We no longer need to use archaic heuristics if the quota is hit before cache logic hooks.
-                trueTotal = getFilteredLogs().length || 1;
-
-                // Initialize the physical cache for the next cycle
-                localStorage.setItem(`vigicore_true_count_${currentTimeFilter}`, trueTotal.toString());
-                localStorage.setItem(`vigicore_true_time_${currentTimeFilter}`, Date.now().toString());
-            }
+            console.warn("Firebase true total fetch failed. Returning strictly matched local lengths.", error);
+            trueTotal = getFilteredLogs().length || 1;
         }
     }
 
     const localTotal = getFilteredLogs().length || 1;
-    
-    // Ignore strict safety bound if we know the DB was just resized
-    const isReseed = localStorage.getItem('vigicore_v2_db_reseed') === 'true';
-    if (!isReseed && trueTotal < localTotal) trueTotal = localTotal; // Strict safety bound
 
+    if (trueTotal < localTotal) trueTotal = localTotal; // Scale lock
     lastTrueTotal = trueTotal;
     lastScaleTime = Date.now();
 
