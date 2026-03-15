@@ -498,7 +498,10 @@ const getScaleRatio = async (): Promise<{ ratio: number, total: number }> => {
     }
 
     const localTotal = getFilteredLogs().length || 1;
-    if (trueTotal < localTotal) trueTotal = localTotal; // Strict safety bound
+    
+    // Ignore strict safety bound if we know the DB was just resized
+    const isReseed = localStorage.getItem('vigicore_v2_db_reseed') === 'true';
+    if (!isReseed && trueTotal < localTotal) trueTotal = localTotal; // Strict safety bound
 
     lastTrueTotal = trueTotal;
     lastScaleTime = Date.now();
@@ -592,7 +595,7 @@ export const ElasticsearchService = {
 
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
         const bucketsDef = getBuckets();
-        const { total } = await getScaleRatio();
+        const { ratio } = await getScaleRatio();
 
         const localLogs = getFilteredLogs();
 
