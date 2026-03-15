@@ -69,35 +69,13 @@ const ports = [22, 2222, 21, 23, 80, 443, 3389, 8080, 5432, 3306, 6379, 27017, 1
 const getRandomItem = (arr: any[]) => arr[Math.floor(Math.random() * arr.length)];
 
 // Stateful Mock Data Generator
-const generateInitialLogs = (count: number = 300): AuthLog[] => {
+const generateInitialLogs = (count: number, monthStart: number, monthEnd: number): AuthLog[] => {
     const logs: AuthLog[] = [];
-    const now = new Date();
 
     for (let i = 0; i < count; i++) {
-        // Distribute logs dynamically across the current year
-        const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
-        const endOfYear = new Date(now.getFullYear(), 11, 31, 23, 59, 59).getTime();
-
-        let timeOffset = 0;
-        let eventDate: Date;
-        const rand = Math.random();
-
-        // 15% in the last 24 hours (Today active)
-        if (rand < 0.15) {
-            timeOffset = Math.floor(Math.random() * 24 * 60 * 60 * 1000);
-            eventDate = new Date(now.getTime() - timeOffset);
-        }
-        // 25% in the last 7 days (This week active)
-        else if (rand < 0.40) {
-            timeOffset = Math.floor(Math.random() * 7 * 24 * 60 * 60 * 1000);
-            eventDate = new Date(now.getTime() - timeOffset);
-        }
-        // 60% perfectly distributed throughout the entire year (Jan 1st - Dec 31st)
-        else {
-             // Generate a timestamp randomly between start of year and end of year
-             const randomTimeInYear = startOfYear + Math.random() * (endOfYear - startOfYear);
-             eventDate = new Date(randomTimeInYear);
-        }
+        // Generate a random timestamp anywhere within the provided month window
+        const randomTimeInWindow = monthStart + Math.random() * (monthEnd - monthStart);
+        const eventDate = new Date(randomTimeInWindow);
 
         const isMalicious = Math.random() > 0.6; // 60% of logs are malicious
         const ip = isMalicious ? getRandomItem(maliciousIPs) : getRandomItem(safeIPs);
@@ -163,7 +141,27 @@ const initFirestoreLogs = async () => {
             console.log('Seeding initial Firestore logs to Firebase...');
             localStorage.setItem('vigicore_seeded_firebase', 'true'); // lock this client
 
-            const initLogs = generateInitialLogs(400); // Varied logs out the gate
+            const now = new Date();
+            const year = now.getFullYear();
+            
+            // Build the backdated simulation metrics
+            // January: ~5000 logs (Full month)
+            const janStart = new Date(year, 0, 1).getTime();
+            const janEnd = new Date(year, 1, 0, 23, 59, 59).getTime(); // Last day of Jan
+            const janLogs = generateInitialLogs(4839, janStart, janEnd);
+            
+            // February: ~7000 logs (Full month)
+            const febStart = new Date(year, 1, 1).getTime();
+            const febEnd = new Date(year, 2, 0, 23, 59, 59).getTime(); // Last day of Feb
+            const febLogs = generateInitialLogs(7214, febStart, febEnd);
+            
+            // March: ~3500 logs (Up to the precise current date relative to the year)
+            const marStart = new Date(year, 2, 1).getTime();
+            const marEnd = now.getTime(); // Stops generating precisely today
+            const marLogs = generateInitialLogs(3630, marStart, marEnd);
+
+            const initLogs = [...janLogs, ...febLogs, ...marLogs];
+
             const batch = writeBatch(db);
             initLogs.forEach(log => {
                 const docRef = doc(LOGS_COL);
@@ -233,11 +231,11 @@ setInterval(async () => {
     let tenantUpdated = false;
     Object.keys(tenantLogsCache).forEach(tenant => {
         const numNewLogs = Math.floor(Math.random() * 11) + 5; // 5 to 15 logs realistically
-        const newLogs = generateInitialLogs(numNewLogs);
+        const now = new Date();
+        const past15Mins = now.getTime() - (15 * 60 * 1000);
+        const newLogs = generateInitialLogs(numNewLogs, past15Mins, now.getTime());
 
         newLogs.forEach(log => {
-            const timeOffset = Math.floor(Math.random() * 15 * 60 * 1000); // Random offset within the last 15 minutes
-            log.timestamp = new Date(Date.now() - timeOffset).toISOString();
             tenantLogsCache[tenant].unshift(log);
         });
 
@@ -249,12 +247,9 @@ setInterval(async () => {
 
     // Handle organic traffic for the primary tenant
     const numNewLogs = Math.floor(Math.random() * 11) + 5;
-    const newLogs = generateInitialLogs(numNewLogs);
-
-    newLogs.forEach(log => {
-        const timeOffset = Math.floor(Math.random() * 15 * 60 * 1000); // Random offset within 15 mins
-        log.timestamp = new Date(Date.now() - timeOffset).toISOString();
-    });
+    const now = new Date();
+    const past15Mins = now.getTime() - (15 * 60 * 1000);
+    const newLogs = generateInitialLogs(numNewLogs, past15Mins, now.getTime());
 
     // We are online; broadcast the burst securely to Firebase.
     // We intentionally DO NOT prune, delete, or fallback. The user requested we never mess with actual totals.
@@ -296,8 +291,10 @@ const getFilteredLogs = (): AuthLog[] => {
 
     if (currentTenant !== 'Global Analytics Corp') {
         if (!tenantLogsCache[currentTenant]) {
-            // Generate unique data profile for secondary tenants
-            tenantLogsCache[currentTenant] = generateInitialLogs(Math.floor(Math.random() * 300) + 150);
+            // Generate unique data profile for secondary tenants (backdated 30 days)
+            const now = new Date();
+            const past30Days = now.getTime() - (30 * 24 * 60 * 60 * 1000);
+            tenantLogsCache[currentTenant] = generateInitialLogs(Math.floor(Math.random() * 300) + 150, past30Days, now.getTime());
         }
         baseLogs = tenantLogsCache[currentTenant];
     }
