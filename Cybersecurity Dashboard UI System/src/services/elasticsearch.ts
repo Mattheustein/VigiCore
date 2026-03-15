@@ -569,7 +569,7 @@ export const ElasticsearchService = {
 
     getAuthTimeline: async (): Promise<AuthEvent[]> => {
         const bucketsDef = getBuckets();
-        const { ratio } = await getScaleRatio();
+        const { total } = await getScaleRatio();
 
         const localLogs = getFilteredLogs();
 
