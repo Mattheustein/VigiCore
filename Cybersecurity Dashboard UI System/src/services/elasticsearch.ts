@@ -330,6 +330,8 @@ const getBuckets = () => {
 
     if (currentTimeFilter === 'This year' || currentTimeFilter === 'All time') {
         const currentMonth = now.getMonth();
+        // Render up to current month so future months don't flatline,
+        // unless requested otherwise. The user is fine with this.
         for (let i = 0; i <= currentMonth; i++) {
             const start = new Date(now.getFullYear(), i, 1).getTime();
             const end = new Date(now.getFullYear(), i + 1, 1).getTime();
@@ -339,39 +341,29 @@ const getBuckets = () => {
     } else if (currentTimeFilter === 'This quarter') {
         const currentQuarter = Math.floor(now.getMonth() / 3);
         const startMonthOfQuarter = currentQuarter * 3;
-        const currentMonth = now.getMonth();
         for (let i = 0; i < 3; i++) {
             const monthOffset = startMonthOfQuarter + i;
-            if (monthOffset > currentMonth) break;
             const start = new Date(now.getFullYear(), monthOffset, 1).getTime();
             const end = new Date(now.getFullYear(), monthOffset + 1, 1).getTime();
             const label = new Date(now.getFullYear(), monthOffset, 1).toLocaleDateString([], { month: 'short', year: '2-digit' });
             buckets.push({ start, end, label });
         }
     } else if (currentTimeFilter === 'This month') {
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-        let currentDay = new Date(monthStart);
-        while (currentDay <= today) {
-            const start = currentDay.getTime();
+        const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+        for (let i = 0; i < daysInMonth; i++) {
+            const start = new Date(now.getFullYear(), now.getMonth(), i + 1).getTime();
             const end = start + 24 * 60 * 60 * 1000;
-            const label = currentDay.toLocaleDateString([], { month: 'short', day: 'numeric' });
+            const label = new Date(start).toLocaleDateString([], { month: 'short', day: 'numeric' });
             buckets.push({ start, end, label });
-            currentDay.setDate(currentDay.getDate() + 1);
         }
     } else if (currentTimeFilter === 'This week') {
         const day = now.getDay();
         const diff = now.getDate() - day + (day === 0 ? -6 : 1);
-        const weekStart = new Date(now.setDate(diff));
+        const weekStart = new Date(now.getFullYear(), now.getMonth(), diff);
         weekStart.setHours(0, 0, 0, 0);
         
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
         for (let i = 0; i < 7; i++) {
             const start = weekStart.getTime() + i * 24 * 60 * 60 * 1000;
-            if (start > today.getTime()) break;
             const end = start + 24 * 60 * 60 * 1000;
             const label = new Date(start).toLocaleDateString([], { weekday: 'short' });
             buckets.push({ start, end, label });
@@ -380,7 +372,6 @@ const getBuckets = () => {
         const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
         for (let i = 0; i < 6; i++) {
             const start = dayStart + i * 4 * 60 * 60 * 1000;
-            if (start > now.getTime()) break;
             const end = start + 4 * 60 * 60 * 1000;
             const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             buckets.push({ start, end, label });
@@ -389,7 +380,6 @@ const getBuckets = () => {
         const hourStart = Math.floor(now.getTime() / (60 * 60 * 1000)) * (60 * 60 * 1000);
         for (let i = 0; i < 6; i++) {
             const start = hourStart + i * 10 * 60 * 1000;
-            if (start > now.getTime()) break;
             const end = start + 10 * 60 * 1000;
             const label = new Date(start).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             buckets.push({ start, end, label });
