@@ -251,6 +251,10 @@ export function SuspiciousActivityPage() {
                         size="sm"
                         variant="outline"
                         className="border-[#5B6AC2]/30 hover:bg-[#1A1F2E]"
+                        onClick={() => {
+                          setSuspiciousEvents(prev => prev.map(e => e.id === event.id ? { ...e, status: 'Resolved' } : e));
+                          setExpandedEvent(null);
+                        }}
                       >
                         Mark as Investigated
                       </Button>
@@ -258,6 +262,10 @@ export function SuspiciousActivityPage() {
                         size="sm"
                         variant="outline"
                         className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+                        onClick={() => {
+                          setSuspiciousEvents(prev => prev.map(e => e.id === event.id ? { ...e, status: 'Blocked' } : e));
+                          setExpandedEvent(null);
+                        }}
                       >
                         Block IP
                       </Button>

@@ -12,6 +12,7 @@ export function DetectionRulesPage() {
         type: 'Authentication',
         severity: 'Medium',
     });
+    const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchRules = async () => {
@@ -39,9 +40,24 @@ export function DetectionRulesPage() {
             severity: newRule.severity,
             type: newRule.type,
         };
+        if (editingRuleId) {
+            await ElasticsearchService.deleteDetectionRule(editingRuleId);
+        }
         await ElasticsearchService.createDetectionRule(ruleToAdd);
         setIsModalOpen(false);
+        setEditingRuleId(null);
         setNewRule({ name: '', description: '', type: 'Authentication', severity: 'Medium' });
+    };
+
+    const handleEditRule = (rule: any) => {
+        setNewRule({
+            name: rule.name,
+            description: rule.description,
+            type: rule.type,
+            severity: rule.severity,
+        });
+        setEditingRuleId(rule.id);
+        setIsModalOpen(true);
     };
 
     const handleDeleteRule = async (id: string) => {
@@ -57,7 +73,11 @@ export function DetectionRulesPage() {
                     <p className="text-gray-400 mt-1">Manage intrusion detection signatures, heuristics, and response policies.</p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setEditingRuleId(null);
+                        setNewRule({ name: '', description: '', type: 'Authentication', severity: 'Medium' });
+                        setIsModalOpen(true);
+                    }}
                     className="flex items-center gap-2 bg-[#5B6AC2] hover:bg-[#4b58a1] text-white px-4 py-2 rounded-md transition-colors w-fit"
                 >
                     <Plus className="w-4 h-4" />
@@ -117,7 +137,11 @@ export function DetectionRulesPage() {
                                     </td>
                                     <td className="py-4 px-6">
                                         <div className="flex items-center justify-end gap-3">
-                                            <button className="text-gray-400 hover:text-blue-400 transition-colors" title="Edit Rule">
+                                            <button 
+                                                className="text-gray-400 hover:text-blue-400 transition-colors" 
+                                                title="Edit Rule"
+                                                onClick={() => handleEditRule(rule)}
+                                            >
                                                 <Edit2 className="w-4 h-4" />
                                             </button>
                                             <button
@@ -140,7 +164,7 @@ export function DetectionRulesPage() {
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <Card className="bg-[#131825] border-[#5B6AC2]/30 p-6 w-full max-w-md shadow-2xl">
-                        <h2 className="text-xl font-bold text-white mb-4">Create New Rule</h2>
+                        <h2 className="text-xl font-bold text-white mb-4">{editingRuleId ? 'Edit Rule' : 'Create New Rule'}</h2>
                         <form onSubmit={handleAddRule} className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-400 mb-1">Rule Name</label>
@@ -204,7 +228,7 @@ export function DetectionRulesPage() {
                                     type="submit"
                                     className="px-4 py-2 rounded-md font-medium text-white bg-[#5B6AC2] hover:bg-[#4b58a1] transition-colors"
                                 >
-                                    Add Rule
+                                    {editingRuleId ? 'Save Changes' : 'Add Rule'}
                                 </button>
                             </div>
                         </form>

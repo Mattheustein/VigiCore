@@ -280,10 +280,13 @@ const getFilteredLogs = (): AuthLog[] => {
 
     if (currentTenant !== 'Global Analytics Corp') {
         if (!tenantLogsCache[currentTenant]) {
-            // Generate unique data profile for secondary tenants (backdated 30 days)
+            // Generate unique data profile for secondary tenants (backdated to start of year)
             const now = new Date();
-            const past30Days = now.getTime() - (30 * 24 * 60 * 60 * 1000);
-            tenantLogsCache[currentTenant] = generateInitialLogs(Math.floor(Math.random() * 300) + 150, past30Days, now.getTime());
+            const startOfYear = new Date(now.getFullYear(), 0, 1).getTime();
+            
+            // Generate a healthy but smaller volume than the primary tenant (between 2,000 and 5,000 logs YTD)
+            const logVolume = Math.floor(Math.random() * 3000) + 2000;
+            tenantLogsCache[currentTenant] = generateInitialLogs(logVolume, startOfYear, now.getTime());
         }
         baseLogs = tenantLogsCache[currentTenant];
     }

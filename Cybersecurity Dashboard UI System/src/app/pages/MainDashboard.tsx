@@ -363,7 +363,21 @@ export function MainDashboard() {
                     <RiskBadge level={item.risk} />
                   </td>
                   <td className="py-3 px-4">
-                    <button className="text-[#5B6AC2] hover:text-[#E91E63] text-sm transition-colors">
+                    <button 
+                      className="text-[#5B6AC2] hover:text-[#E91E63] text-sm transition-colors"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAlert({
+                          type: item.type || 'Brute Force Attack',
+                          timestamp: item.timestamp || new Date().toISOString(),
+                          ip: item.ip,
+                          user: item.user,
+                          attempts: item.attempts,
+                          host: 'ubuntu-server-01',
+                          risk: item.risk,
+                        });
+                      }}
+                    >
                       View Details
                     </button>
                   </td>

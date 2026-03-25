@@ -15,6 +15,7 @@ export function AuthLogsPage() {
   const [filterResult, setFilterResult] = useState('all');
   const [authLogs, setAuthLogs] = useState<AuthLog[]>([]);
   const [stats, setStats] = useState({ total: 0, success: 0, failed: 0, publickey: 0 });
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -30,7 +31,7 @@ export function AuthLogsPage() {
     // Refresh every 5 seconds
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [refreshTrigger]);
 
   const filteredLogs = authLogs.filter((log) => {
     const matchesSearch =
@@ -74,7 +75,7 @@ export function AuthLogsPage() {
           <p className="text-gray-400 mt-1">Real-time SSH authentication events from all hosts</p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="border-[#5B6AC2]/30 hover:bg-[#1A1F2E]">
+          <Button variant="outline" className="border-[#5B6AC2]/30 hover:bg-[#1A1F2E]" onClick={() => setRefreshTrigger(prev => prev + 1)}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Refresh
           </Button>

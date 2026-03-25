@@ -4,10 +4,12 @@ import { Button } from '../components/ui/button';
 import { Bell, CheckCircle, AlertTriangle, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { ElasticsearchService } from '../../services/elasticsearch';
+import { AlertModal } from '../components/AlertModal';
 
 export function AlertsPage() {
   const [alerts, setAlerts] = useState<any[]>([]);
   const [stats, setStats] = useState({ total: 0, active: 0, monitoring: 0, resolved: 0 });
+  const [selectedAlert, setSelectedAlert] = useState<any>(null);
 
   useEffect(() => {
     const fetchAlerts = async () => {
@@ -30,7 +32,10 @@ export function AlertsPage() {
           <h1 className="text-3xl font-bold text-white">Security Alerts</h1>
           <p className="text-gray-400 mt-1">Real-time security notifications and threat alerts (Live from VigiCore)</p>
         </div>
-        <Button className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
+        <Button 
+          className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90"
+          onClick={() => setAlerts(prev => prev.map(a => ({ ...a, status: 'Resolved' })))}
+        >
           <CheckCircle className="w-4 h-4 mr-2" />
           Mark All as Read
         </Button>
@@ -127,11 +132,28 @@ export function AlertsPage() {
 
                   <div className="flex-1" />
 
-                  <Button size="sm" variant="outline" className="border-[#5B6AC2]/30 hover:bg-[#1A1F2E]">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="border-[#5B6AC2]/30 hover:bg-[#1A1F2E]"
+                    onClick={() => setSelectedAlert({
+                      type: alert.title,
+                      timestamp: alert.timestamp,
+                      ip: 'Unknown',
+                      user: 'Unknown',
+                      attempts: 1,
+                      host: 'System',
+                      risk: alert.severity
+                    })}
+                  >
                     View Details
                   </Button>
                   {alert.status !== 'Resolved' && (
-                    <Button size="sm" className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
+                    <Button 
+                      size="sm" 
+                      className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90"
+                      onClick={() => setAlerts(prev => prev.map(a => a.id === alert.id ? { ...a, status: 'Resolved' } : a))}
+                    >
                       Resolve
                     </Button>
                   )}
@@ -141,6 +163,10 @@ export function AlertsPage() {
           </Card>
         ))}
       </div>
+
+      {selectedAlert && (
+        <AlertModal alert={selectedAlert} onClose={() => setSelectedAlert(null)} />
+      )}
     </div>
   );
 }

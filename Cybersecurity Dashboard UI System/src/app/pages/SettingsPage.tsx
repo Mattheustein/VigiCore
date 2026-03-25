@@ -318,7 +318,10 @@ export function SettingsPage() {
                     <Input type="password" defaultValue="*************************" className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white" />
                   </div>
                   <div className="pt-2">
-                    <Button className="bg-[#1A1F2E] border border-[#5B6AC2]/50 text-[#5B6AC2] hover:bg-[#5B6AC2] hover:text-white transition-colors">
+                    <Button 
+                      className="bg-[#1A1F2E] border border-[#5B6AC2]/50 text-[#5B6AC2] hover:bg-[#5B6AC2] hover:text-white transition-colors"
+                      onClick={() => alert('Connection to es-node-01.internal successful!')}
+                    >
                       Test Connection
                     </Button>
                   </div>
@@ -385,7 +388,10 @@ export function SettingsPage() {
               </Card>
 
               <div className="flex justify-end mt-6">
-                <Button className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90">
+                <Button 
+                  className="bg-gradient-to-r from-[#5B6AC2] to-[#E91E63] hover:opacity-90"
+                  onClick={() => alert('Integrations configuration saved successfully.')}
+                >
                   Save Integrations
                 </Button>
               </div>
