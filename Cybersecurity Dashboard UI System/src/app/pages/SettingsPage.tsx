@@ -16,6 +16,11 @@ export function SettingsPage() {
   const [editingUser, setEditingUser] = useState<string | null>(null);
   const [editUserData, setEditUserData] = useState({ fullName: '', email: '', role: 'Analyst', password: '' });
 
+  // Settings State
+  const [autoBlock, setAutoBlock] = useState(true);
+  const [authRetention, setAuthRetention] = useState('90');
+  const [metricsRetention, setMetricsRetention] = useState('14');
+
   useEffect(() => {
     const fetchUser = async () => {
       const user = AuthService.getCurrentUser();
@@ -34,7 +39,6 @@ export function SettingsPage() {
   }, []);
 
   const handleProfileUpdate = async () => {
-    if (!profileData.username) return;
     const updatePayload: any = { username: profileData.username, fullName: profileData.fullName, email: profileData.email };
     if (profileData.password) updatePayload.password = profileData.password;
     const res = await AuthService.updateProfile(updatePayload);
@@ -293,7 +297,7 @@ export function SettingsPage() {
                     <Label className="text-white">Auto-block Failed Attempts</Label>
                     <p className="text-sm text-gray-400 mt-1">Automatically block IPs after multiple failed login attempts</p>
                   </div>
-                  <Switch defaultChecked />
+                  <Switch checked={autoBlock} onCheckedChange={setAutoBlock} />
                 </div>
               </div>
             </Card>
@@ -368,17 +372,17 @@ export function SettingsPage() {
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label className="text-white">Auth Logs Retention</Label>
-                        <select className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
+                        <select value={authRetention} onChange={(e) => setAuthRetention(e.target.value)} className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
                           <option value="30">30 Days</option>
-                          <option value="90" selected>90 Days</option>
+                          <option value="90">90 Days</option>
                           <option value="365">1 Year</option>
                         </select>
                       </div>
                       <div className="space-y-2">
                         <Label className="text-white">System Metrics Retention</Label>
-                        <select className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
+                        <select value={metricsRetention} onChange={(e) => setMetricsRetention(e.target.value)} className="w-full bg-[#1A1F2E]/50 border border-[#5B6AC2]/30 text-white rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-[#5B6AC2]">
                           <option value="7">7 Days</option>
-                          <option value="14" selected>14 Days</option>
+                          <option value="14">14 Days</option>
                           <option value="30">30 Days</option>
                         </select>
                       </div>

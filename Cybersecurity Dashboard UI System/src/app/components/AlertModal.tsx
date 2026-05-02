@@ -150,7 +150,7 @@ export function AlertModal({ alert, onClose }: AlertModalProps) {
           {/* Full Log Message */}
           <div className="p-4 bg-[#0A0E1A] rounded-lg border border-[#5B6AC2]/20">
             <p className="text-gray-400 text-sm mb-2 md:text-base">Full Log Message</p>
-            <pre className="text-xs md:text-sm text-gray-300 overflow-x-auto font-mono">
+            <pre className="text-xs md:text-sm text-gray-300 overflow-x-auto font-mono whitespace-pre-wrap break-all">
               {`[${new Date(alert.timestamp).toISOString()}] SSHD[12345]: Failed password for ${alert.user} from ${alert.ip} port 52314 ssh2
 [${new Date(alert.timestamp).toISOString()}] SSHD[12346]: Connection closed by authenticating user ${alert.user} ${alert.ip} port 52314 [preauth]
 [${new Date(alert.timestamp).toISOString()}] SSHD[12347]: Failed password for ${alert.user} from ${alert.ip} port 52315 ssh2

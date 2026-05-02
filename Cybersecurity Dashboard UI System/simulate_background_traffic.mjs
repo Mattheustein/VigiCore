@@ -13,7 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const LOGS_COL = collection(db, "authLogs");
+const LOGS_COL = collection(db, "authLogs_v3");
 
 // Shared Mock Entities for Variety
 const maliciousIPs = [

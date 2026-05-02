@@ -8,6 +8,7 @@ import {
     updateEmail,
     onAuthStateChanged,
     verifyBeforeUpdateEmail,
+    updatePassword,
     GoogleAuthProvider,
     signInWithPopup
 } from "firebase/auth";
@@ -109,7 +110,23 @@ export const AuthService = {
 
     login: async (username: string, password: string): Promise<{ success: boolean; user?: any; error?: string }> => {
         try {
-            const email = username.includes('@') ? username.toLowerCase() : `${username.toLowerCase()}@vigicore.local`;
+            let email = username.toLowerCase();
+            if (!email.includes('@')) {
+                // Look up the user's real email if they try to log in with a username
+                try {
+                    const userDoc = await getDoc(doc(db, "userProfiles", email));
+                    if (userDoc.exists() && userDoc.data().email) {
+                        email = userDoc.data().email.toLowerCase();
+                    } else {
+                        email = `${email}@vigicore.local`;
+                    }
+                } catch (dbError) {
+                    email = `${email}@vigicore.local`;
+                }
+            } else {
+                email = email.toLowerCase();
+            }
+
             await signInWithEmailAndPassword(auth, email, password);
             return { success: true, user: currentUser };
         } catch (error: any) {
@@ -196,6 +213,18 @@ export const AuthService = {
                             alert(`Firebase Security Alert: A verification email has been sent to ${updatedUser.email}. Please click the link to finalize your new email address in the authentication system.`);
                         } else if (e.code === 'auth/requires-recent-login') {
                             return { success: false, error: 'Firebase Security requires you to log out and log back in before changing your email.' };
+                        } else {
+                            throw e;
+                        }
+                    }
+                }
+
+                if (updatedUser.password) {
+                    try {
+                        await updatePassword(auth.currentUser, updatedUser.password);
+                    } catch (e: any) {
+                        if (e.code === 'auth/requires-recent-login') {
+                            return { success: false, error: 'Firebase Security requires you to log out and log back in before changing your password.' };
                         } else {
                             throw e;
                         }

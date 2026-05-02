@@ -13,10 +13,10 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const LOGS_COL = collection(db, 'authLogs_v2');
+const LOGS_COL = collection(db, 'authLogs_v3');
 
 async function checkDates() {
-    console.log("Checking database authLogs_v2...");
+    console.log("Checking database authLogs_v3...");
     
     const janStart = new Date(2026, 0, 1).toISOString();
     const febStart = new Date(2026, 1, 1).toISOString();

@@ -95,6 +95,7 @@ export function LoginPage() {
                   placeholder="analyst@vigicore.security"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="username"
                   className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white placeholder:text-gray-500 focus:border-[#5B6AC2] focus:ring-[#5B6AC2]/20"
                 />
               </div>
@@ -110,6 +111,7 @@ export function LoginPage() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
                   className="bg-[#1A1F2E]/50 border-[#5B6AC2]/30 text-white placeholder:text-gray-500 focus:border-[#5B6AC2] focus:ring-[#5B6AC2]/20"
                 />
               </div>
