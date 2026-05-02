@@ -155,9 +155,14 @@ const initFirestoreLogs = async () => {
             });
         });
 
-        // Splice overlapping history based on newest fetched timestamp
+        // Splice overlapping history based on DB timestamp bounds
+        const newestDBTime = logsFromDB.length > 0 ? new Date(logsFromDB[0].timestamp).getTime() : 0;
         const oldestDBTime = logsFromDB.length > 0 ? new Date(logsFromDB[logsFromDB.length - 1].timestamp).getTime() : 0;
-        const filteredHistorical = historicalFallback.filter(h => new Date(h.timestamp).getTime() < oldestDBTime);
+        
+        const filteredHistorical = historicalFallback.filter(h => {
+            const t = new Date(h.timestamp).getTime();
+            return t < oldestDBTime || t > newestDBTime;
+        });
         
         mockLogs = [...logsFromDB, ...filteredHistorical].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         window.dispatchEvent(new Event('logsDatabaseUpdated'));
