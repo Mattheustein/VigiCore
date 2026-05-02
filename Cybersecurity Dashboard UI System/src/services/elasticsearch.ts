@@ -155,13 +155,13 @@ const initFirestoreLogs = async () => {
             });
         });
 
-        // Splice overlapping history based on DB timestamp bounds
-        const newestDBTime = logsFromDB.length > 0 ? new Date(logsFromDB[0].timestamp).getTime() : 0;
-        const oldestDBTime = logsFromDB.length > 0 ? new Date(logsFromDB[logsFromDB.length - 1].timestamp).getTime() : 0;
+        // Splice overlapping history by tracking active database days
+        // This perfectly preserves fallback data for days where the app was offline and no DB logs were generated
+        const activeDBDays = new Set(logsFromDB.map(l => new Date(l.timestamp).toDateString()));
         
         const filteredHistorical = historicalFallback.filter(h => {
-            const t = new Date(h.timestamp).getTime();
-            return t < oldestDBTime || t > newestDBTime;
+            const day = new Date(h.timestamp).toDateString();
+            return !activeDBDays.has(day);
         });
         
         mockLogs = [...logsFromDB, ...filteredHistorical].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
