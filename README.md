@@ -5,7 +5,7 @@
 ## Project Overview
 
 *   **Type**: Detection-only IDS (no prevention/blocking).
-*   **Deployment**: Debian/Linux environment (e.g., Kali Linux).
+*   **Deployment**: Linux environment (e.g., Kali, Debian, Ubuntu).
 *   **Tech Stack**: Filebeat, Logstash, Elasticsearch, Kibana.
 *   **Log Sources**: `/var/log/syslog`, `/var/log/auth.log`.
 
@@ -39,16 +39,22 @@ The dashboard requires **Node.js** to run.
 * **Mac/Linux:** Open your **Terminal**.
 
 ### Step 3: Navigate to the Dashboard Folder
-1. In your terminal, type `cd ` (make sure to include the space).
-2. Drag and drop the unzipped `VigiCore` folder into the terminal, then press **Enter**.
-3. Navigate to the UI folder by typing:
-   ```bash
-   cd "Cybersecurity Dashboard UI System"
-   ```
-4. Press **Enter**.
+You need to change your terminal's directory to the UI folder. If you extracted the `VigiCore` folder to your **Downloads**, simply copy, paste, and run the command for your operating system:
+
+**For Windows:**
+```cmd
+cd %USERPROFILE%\Downloads\VigiCore\"Cybersecurity Dashboard UI System"
+```
+
+**For Mac/Linux:**
+```bash
+cd ~/Downloads/VigiCore/"Cybersecurity Dashboard UI System"
+```
+
+*(Note: If you extracted the folder somewhere else, replace the path in the command with your actual folder location.)*
 
 ### Step 4: Install Dependencies & Run
-1. Install the required packages by running:
+1. Install the required packages by copying, pasting, and running this command:
    ```bash
    npm install
    ```
