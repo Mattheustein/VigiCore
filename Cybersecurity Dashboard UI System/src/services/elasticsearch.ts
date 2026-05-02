@@ -116,7 +116,7 @@ const initFirestoreLogs = async () => {
     const currentMonthIndex = nowLocal.getMonth();
     
     let historicalFallback: AuthLog[] = [];
-    const monthVolumes = [5000, 7000, 3000, 4200, 5100, 3900, 4500, 4100, 3800, 4300, 4700, 4000];
+    const monthVolumes = [14500, 16500, 9500, 11500, 14000, 3900, 4500, 4100, 3800, 4300, 4700, 4000];
     
     for (let i = 0; i <= currentMonthIndex; i++) {
         const start = new Date(currentYear, i, 1).getTime();
