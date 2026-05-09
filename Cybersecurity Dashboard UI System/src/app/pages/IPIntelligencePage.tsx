@@ -126,27 +126,18 @@ export function IPIntelligencePage() {
                   key={index}
                   coordinates={marker.coordinates}
                 >
-                  <g
-                    transform="translate(-12, -24)"
+                  <circle
+                    r="8"
+                    fill={marker.risk === 'High' ? "#EF4444" : "#F59E0B"}
+                    opacity="0.3"
                   >
-                    {/* Pulse Effect */}
-                    <circle
-                      cx="12"
-                      cy="24"
-                      r="8"
-                      fill={marker.risk === 'High' ? "#EF4444" : "#F59E0B"}
-                      opacity="0.3"
-                    >
-                      <animate attributeName="r" from="8" to="24" dur="2s" repeatCount="indefinite" />
-                      <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite" />
-                    </circle>
-                    <circle
-                      cx="12"
-                      cy="24"
-                      r="4"
-                      fill={marker.risk === 'High' ? "#EF4444" : "#F59E0B"}
-                    />
-                  </g>
+                    <animate attributeName="r" from="8" to="24" dur="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" from="0.6" to="0" dur="2s" repeatCount="indefinite" />
+                  </circle>
+                  <circle
+                    r="4"
+                    fill={marker.risk === 'High' ? "#EF4444" : "#F59E0B"}
+                  />
                 </Marker>
               ))}
             </ComposableMap>
