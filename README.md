@@ -4,7 +4,7 @@
 > **🌐 Live Dashboard Demo:** [VigiCore on Vercel](https://vigi-core.vercel.app/)
 > **🐙 GitHub Repository:** [Mattheustein/VigiCore](https://github.com/Mattheustein/VigiCore)
 > 
-> **Evaluation Credentials:**
+> **Vercel Credentials:**
 > - **Username:** `Admin`
 > - **Password:** `Admin123`
 
