@@ -1,3 +1,17 @@
+/**
+ * StatusBadge Component
+ * =====================
+ * Renders a system health status indicator badge with a pulsing animation dot.
+ * Displayed in the DashboardLayout topbar and SystemHealthPage to show
+ * overall system status at a glance.
+ *
+ * Status → Visual Mapping:
+ * - secure:   Green dot + green text (system healthy)
+ * - warning:  Amber dot + amber text (elevated load/risk)
+ * - critical: Red dot + red text (system under duress)
+ *
+ * The inner dot pulses with a CSS `animate-pulse` animation to draw attention.
+ */
 interface StatusBadgeProps {
   status: 'secure' | 'warning' | 'critical';
   label?: string;

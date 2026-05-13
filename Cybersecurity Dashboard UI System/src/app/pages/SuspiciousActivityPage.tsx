@@ -1,3 +1,20 @@
+/**
+ * SuspiciousActivityPage
+ * ======================
+ * Displays a threat-focused view of the most suspicious IP addresses detected
+ * by the IDS heuristic engine. Each row shows an IP enriched with attack type,
+ * attempt count, risk level, and blocking status.
+ *
+ * Features:
+ * - Sortable table of suspicious IPs from ElasticsearchService.getSuspiciousIPs()
+ * - Click-to-expand: opens AlertModal with full attack details and timeline
+ * - Status management: Toggle between Blocked/Monitoring/Investigating (local state only)
+ * - Search/filter by IP address or attack type
+ * - Real-time updates on 'logsDatabaseUpdated' events
+ *
+ * NOTE: Status changes are local-only and reset on page reload.
+ * Production use would require Firestore persistence.
+ */
 import { Card } from '../components/ui/card';
 import { RiskBadge } from '../components/RiskBadge';
 import { Button } from '../components/ui/button';

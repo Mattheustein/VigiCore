@@ -1,3 +1,20 @@
+/**
+ * MainDashboard Page
+ * ==================
+ * The central overview page (index route of /dashboard). Displays aggregated
+ * security metrics across six visualization panels:
+ *
+ * 1. Statistics Cards — Total events, failed logins, success rate, public key auth count
+ * 2. Failed Login Attempts — Line chart bucketed by time window (via getFailedLogins)
+ * 3. Top Source IPs — Horizontal bar chart of IPs with most failed attempts
+ * 4. Authentication Timeline — Area chart showing all auth events over time
+ * 5. Login Distribution — Pie chart of success vs. failure ratio
+ * 6. Recent Alerts — Table of the latest high-risk/failed events with risk badges
+ *
+ * Data Pipeline: All data fetched from ElasticsearchService on mount and at
+ * 5-second intervals. Listens to 'logsDatabaseUpdated' and 'timeFilterChange'
+ * window events for real-time re-fetching.
+ */
 import { Card } from '../components/ui/card';
 import { RiskBadge } from '../components/RiskBadge';
 import {

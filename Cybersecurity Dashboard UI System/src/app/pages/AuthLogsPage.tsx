@@ -1,3 +1,19 @@
+/**
+ * AuthLogsPage
+ * ============
+ * Displays a detailed, searchable table of all SSH authentication log entries.
+ * Supports full-text search across IP, user, method, and result fields.
+ *
+ * Features:
+ * - Paginated table with 15 rows per page (client-side pagination)
+ * - Real-time log search via ElasticsearchService.searchLogs()
+ * - Risk badge indicators on each row
+ * - "Investigate" and "Block IP" buttons per row (with confirmation dialogs)
+ * - Export functionality for filtered log data
+ * - Auto-refreshes when time filter or database changes
+ *
+ * Data Source: ElasticsearchService.getAuthLogs() with configurable page size.
+ */
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';

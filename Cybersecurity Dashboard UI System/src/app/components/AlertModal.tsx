@@ -1,9 +1,28 @@
+/**
+ * AlertModal Component
+ * ====================
+ * Full-screen modal dialog displaying detailed information for a single
+ * security alert/suspicious IP event. Opened from the SuspiciousActivityPage
+ * or AlertsPage when a user clicks on an alert row.
+ *
+ * Sections:
+ * 1. Alert type header with risk badge
+ * 2. Key metadata grid (timestamp, host, source IP, target user)
+ * 3. Risk score progress bar (0–100 scale)
+ * 4. Attack timeline mini line chart (static mock data)
+ * 5. Simulated SSH log message (formatted like real syslog output)
+ * 6. Action buttons (UI-only — Block IP, Mark as Investigated, View Full Logs)
+ *
+ * NOTE: Action buttons are currently decorative and do not persist state.
+ * They would need to be connected to Firestore or an API for production use.
+ */
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { RiskBadge } from './RiskBadge';
 import { Button } from './ui/button';
 import { X, Shield, Clock, Server, MapPin, User, Activity } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
+/** Props for the AlertModal — receives alert data from the parent page. */
 interface AlertModalProps {
   alert: {
     type: string;
@@ -17,7 +36,7 @@ interface AlertModalProps {
   onClose: () => void;
 }
 
-// Mock mini timeline data
+/** Static mock data for the attack timeline chart (simulates a 90-minute attack window). */
 const miniTimelineData = [
   { time: '10:00', count: 2 },
   { time: '10:15', count: 5 },
@@ -29,6 +48,7 @@ const miniTimelineData = [
 ];
 
 export function AlertModal({ alert, onClose }: AlertModalProps) {
+  // Map risk level to a numeric score for the progress bar visualization
   const riskScore = alert.risk === 'High' ? 92 : alert.risk === 'Medium' ? 65 : 38;
 
   return (

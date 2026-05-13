@@ -1,3 +1,24 @@
+/**
+ * Application Route Definitions
+ * ==============================
+ * Defines the full client-side routing tree using React Router v7.
+ *
+ * Route Hierarchy:
+ *   /                    → LoginPage (public, unauthenticated entry)
+ *   /dashboard           → DashboardLayout (sidebar + topbar shell)
+ *     /dashboard         → MainDashboard (index route)
+ *     /dashboard/auth-logs           → AuthLogsPage
+ *     /dashboard/suspicious-activity → SuspiciousActivityPage
+ *     /dashboard/ip-intelligence     → IPIntelligencePage
+ *     /dashboard/alerts              → AlertsPage
+ *     /dashboard/system-health       → SystemHealthPage
+ *     /dashboard/network             → NetworkTrafficPage
+ *     /dashboard/rules               → DetectionRulesPage
+ *     /dashboard/settings            → SettingsPage
+ *
+ * NOTE: No route guards are currently implemented. All dashboard routes
+ * are accessible without authentication checks at the router level.
+ */
 import { createBrowserRouter } from 'react-router';
 import { LoginPage } from './pages/LoginPage';
 import { DashboardLayout } from './pages/DashboardLayout';

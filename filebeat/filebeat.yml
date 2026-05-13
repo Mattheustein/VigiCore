@@ -1,4 +1,14 @@
 # VigiCore Filebeat Configuration
+# =================================
+# Filebeat is the lightweight log shipper in the ELK stack. It monitors
+# specified log files for new entries and forwards them to Logstash for
+# parsing and enrichment before storage in Elasticsearch.
+#
+# Pipeline: Filebeat → Logstash (port 5044) → Elasticsearch (port 9200)
+#
+# This configuration watches two log sources:
+# 1. /var/log/syslog  — General system events (tagged as "syslog")
+# 2. /var/log/auth.log — SSH authentication events (tagged as "auth")
 
 filebeat.inputs:
 - type: filestream
@@ -9,6 +19,9 @@ filebeat.inputs:
   fields:
     log_type: syslog
 
+# --- Log Source: SSH Authentication Events ---
+# Captures failed/successful login attempts, session events, and sudo usage.
+# Tagged as "auth" for Logstash routing to the SSH grok patterns.
 - type: filestream
   id: vigicore-auth
   enabled: true
@@ -24,10 +37,14 @@ filebeat.config.modules:
 setup.template.settings:
   index.number_of_shards: 1
 
-# Output to Logstash
+# --- Output: Send parsed events to Logstash ---
+# Logstash applies grok filters (see logstash/10-syslog-filter.conf)
+# before forwarding to Elasticsearch.
 output.logstash:
   hosts: ["localhost:5044"]
 
+# --- Processors: Enrich events with infrastructure metadata ---
+# These automatically add host, cloud, Docker, and K8s context to each event.
 processors:
   - add_host_metadata:
       when.not.contains.tags: forwarded

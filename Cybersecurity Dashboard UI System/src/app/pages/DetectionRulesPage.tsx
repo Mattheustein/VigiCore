@@ -1,3 +1,24 @@
+/**
+ * DetectionRulesPage
+ * ==================
+ * IDS rule management interface for creating, editing, toggling, and deleting
+ * detection rules. This is the only page (besides Settings) with full CRUD
+ * operations persisted to Firestore.
+ *
+ * Features:
+ * - Rule list with name, description, severity, type, and active/inactive status
+ * - "Create Rule" form modal with severity and type dropdowns
+ * - Toggle rule status (Active ↔ Inactive) via ElasticsearchService
+ * - Delete rule with confirmation dialog
+ * - Real-time sync via Firestore onSnapshot listener
+ * - Color-coded severity badges (Critical, High, Medium, Low)
+ *
+ * Data Sources:
+ * - ElasticsearchService.getDetectionRules() — read
+ * - ElasticsearchService.createDetectionRule() — create
+ * - ElasticsearchService.updateDetectionRuleStatus() — toggle
+ * - ElasticsearchService.deleteDetectionRule() — delete
+ */
 import { Card } from '../components/ui/card';
 import { Shield, Plus, Power, Trash2, Edit2, CheckCircle2, AlertCircle } from 'lucide-react';
 import React, { useState, useEffect } from 'react';

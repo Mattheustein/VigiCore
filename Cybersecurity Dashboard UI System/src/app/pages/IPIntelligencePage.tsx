@@ -1,3 +1,20 @@
+/**
+ * IPIntelligencePage
+ * ==================
+ * Geospatial threat visualization page showing suspicious IP origins on an
+ * interactive world map. Combines threat data with geographic coordinates
+ * for a SOC-style threat intelligence view.
+ *
+ * Features:
+ * - Interactive Mapbox GL JS world map with threat origin markers
+ * - Marker size/color scaled by risk level
+ * - Click-to-inspect: shows IP details, country, city, and threat type
+ * - Summary table below the map with all enriched IP intelligence data
+ * - Auto-refreshes when database or time filter changes
+ *
+ * Data Source: ElasticsearchService.getIPIntelligence() which enriches
+ * suspicious IPs with coordinates from a static GeoIP lookup table.
+ */
 import { Card } from '../components/ui/card';
 import { RiskBadge } from '../components/RiskBadge';
 import { Globe, MapPin, Shield, AlertTriangle } from 'lucide-react';

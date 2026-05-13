@@ -1,3 +1,21 @@
+/**
+ * AlertsPage
+ * ==========
+ * Security alert management page showing all active, monitoring, and resolved
+ * alerts derived from high-risk or failed authentication events.
+ *
+ * Features:
+ * - Summary stat cards: Total, Active, Monitoring, Resolved alert counts
+ * - Alert list with severity badges and status indicators
+ * - Filter by severity (High/Medium/Low) and status (Active/Monitoring/Resolved)
+ * - Click alert row to open AlertModal with full details
+ * - "Resolve" and "Investigate" action buttons per alert (local state only)
+ * - Auto-refreshes on 'logsDatabaseUpdated' events
+ *
+ * Data Sources:
+ * - ElasticsearchService.getAlertStats() for summary counts
+ * - ElasticsearchService.getAlerts() for the alert list
+ */
 import { Card } from '../components/ui/card';
 import { RiskBadge } from '../components/RiskBadge';
 import { Button } from '../components/ui/button';

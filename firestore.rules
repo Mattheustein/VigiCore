@@ -1,3 +1,20 @@
+// VigiCore Firestore Security Rules
+// ===================================
+// Defines access control for all Firestore collections.
+//
+// SECURITY WARNING: Current rules allow unrestricted read/write access
+// to ALL documents in ALL collections. This is suitable ONLY for
+// development and demonstration purposes.
+//
+// For production deployment, these rules MUST be updated to:
+// 1. Require Firebase Authentication (request.auth != null)
+// 2. Enforce role-based access using custom claims or profile lookups
+// 3. Restrict write access on sensitive collections (userProfiles, detectionRules)
+// 4. Validate incoming data structure and field types
+//
+// Example production rule (restrict to authenticated users):
+//   allow read, write: if request.auth != null;
+
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {

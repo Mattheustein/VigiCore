@@ -1,3 +1,18 @@
+/**
+ * LoginPage Component
+ * ===================
+ * The unauthenticated entry point of the application. Renders a centered
+ * login card with the VigiCore branding over a dark gradient background.
+ *
+ * Authentication Methods:
+ * 1. Email/Password — Via AuthService.login() (supports plain username or full email)
+ * 2. Google OAuth — Via AuthService.loginWithGoogle() (whitelisted accounts only)
+ *
+ * On successful login, navigates to /dashboard. Error messages are displayed
+ * inline below the form inputs.
+ *
+ * Visual Design: Glassmorphism card with gradient accents and animated background.
+ */
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { Button } from '../components/ui/button';

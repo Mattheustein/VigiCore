@@ -1,3 +1,16 @@
+/**
+ * Footer Component
+ * ================
+ * Floating attribution card displayed in the bottom-right corner of the dashboard.
+ * Contains developer credit and a LinkedIn profile link.
+ *
+ * Features:
+ * - Dismissible via close (X) button (state managed locally, resets on page reload)
+ * - Glassmorphism styling with backdrop blur matching the dashboard aesthetic
+ * - Links to the developer's LinkedIn profile (opens in new tab)
+ *
+ * Rendered inside DashboardLayout as an overlay on all dashboard pages.
+ */
 import { useState } from 'react';
 import { Linkedin, X } from 'lucide-react';
 

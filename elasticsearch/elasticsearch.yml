@@ -1,4 +1,19 @@
 # VigiCore Elasticsearch Configuration
+# ======================================
+# Elasticsearch serves as the search and analytics engine for the ELK stack.
+# It stores all indexed log data from Logstash and provides fast query
+# capabilities via its REST API (port 9200).
+#
+# This is a DEVELOPMENT/DEMO configuration with:
+# - Single-node cluster (no replicas, no split-brain risk)
+# - Localhost-only network binding (not accessible externally)
+# - xpack security DISABLED (see security note below)
+#
+# SECURITY NOTE: For production deployments:
+# 1. Enable xpack.security.enabled: true
+# 2. Configure TLS/SSL for inter-node communication
+# 3. Set up user authentication and role-based access
+# 4. Change network.host to bind only to required interfaces
 
 cluster.name: vigicore-cluster
 node.name: vigicore-node-1

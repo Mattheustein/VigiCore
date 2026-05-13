@@ -1,4 +1,13 @@
 # VigiCore Kibana Configuration
+# ================================
+# Kibana provides the web-based visualization layer for Elasticsearch data.
+# In this project, Kibana serves as a supplementary analytics tool alongside
+# the custom React dashboard (the VigiCore UI).
+#
+# Configuration:
+# - Runs on port 5601 (default), accessible at http://localhost:5601
+# - Connects to the local Elasticsearch instance on port 9200
+# - Logging is disabled by default (uncomment to enable stdout logging)
 
 server.port: 5601
 server.host: "localhost"

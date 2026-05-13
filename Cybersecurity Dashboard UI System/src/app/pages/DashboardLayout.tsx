@@ -1,3 +1,35 @@
+/**
+ * DashboardLayout Component
+ * =========================
+ * The primary application shell that wraps all authenticated dashboard pages.
+ * Provides the persistent sidebar navigation, top bar with global controls,
+ * and the content area where child routes are rendered via React Router's `<Outlet>`.
+ *
+ * Layout Structure:
+ * ┌──────────────────────────────────────────────────────────────┐
+ * │  Top Bar (time filter, tenant selector, language, user menu) │
+ * ├──────────┬───────────────────────────────────────────────────┤
+ * │          │                                                   │
+ * │ Sidebar  │              <Outlet /> (page content)            │
+ * │ (nav)    │                                                   │
+ * │          │                                                   │
+ * ├──────────┴───────────────────────────────────────────────────┤
+ * │                        Footer                                │
+ * └──────────────────────────────────────────────────────────────┘
+ *
+ * Key Features:
+ * - Collapsible sidebar with icon-only mode on mobile
+ * - Global time filter dropdown (Last hour → All time)
+ * - Multi-tenant selector (Global Analytics Corp + secondary tenants)
+ * - i18n language switcher (EN, ES, AR, FR)
+ * - User profile avatar with role display
+ * - Responsive design with mobile hamburger menu
+ * - Real-time system status badge in the top bar
+ *
+ * State Management:
+ * - Listens for 'authChange' window events to update user profile display
+ * - Propagates time/tenant changes via ElasticsearchService global setters
+ */
 import { Outlet, Link, useLocation, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import {

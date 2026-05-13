@@ -1,3 +1,25 @@
+/**
+ * SettingsPage
+ * ============
+ * Administrative configuration page with three tabbed sections:
+ *
+ * Tabs:
+ * 1. **Profile** — View/edit the current user's display name, email, and password.
+ *    Changes are persisted to both Firebase Auth and Firestore via AuthService.updateProfile().
+ * 2. **User Management** (Super Admin only) — Full CRUD for system users:
+ *    - View all user profiles from Firestore
+ *    - Create new users via AuthService.addUser() (uses secondary Firebase app)
+ *    - Delete users via AuthService.deleteUserFromDB()
+ *    - Role assignment (Super Admin, Administrator, Analyst)
+ * 3. **Data Sources** — Configure ELK stack and Firestore connection parameters.
+ *    Connection settings are currently UI-only with mock "test connection" functionality.
+ *
+ * Access Control:
+ * - The User Management tab is only visible to users with the "Super Admin" role.
+ * - Role checks are client-side only (see QA report for security note).
+ *
+ * State Management: Listens for 'authChange' events to refresh the user profile.
+ */
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';

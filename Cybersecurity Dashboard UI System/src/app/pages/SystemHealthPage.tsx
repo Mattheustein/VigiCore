@@ -1,3 +1,23 @@
+/**
+ * SystemHealthPage
+ * ================
+ * Real-time system infrastructure monitoring dashboard. Displays simulated
+ * server health metrics using animated gauges and live-updating charts.
+ *
+ * Metrics Displayed:
+ * - CPU Usage — Sine-wave based simulation with jitter (40-80% range)
+ * - Memory Usage — Gradual oscillation around 68% baseline
+ * - Disk Usage — Stable around 42.4% with micro-variation
+ * - Overall Status — Derived from CPU: >85% Critical, >70% Warning, else Healthy
+ *
+ * Features:
+ * - Animated radial progress indicators for each metric
+ * - Historical trend line chart (last 20 data points)
+ * - StatusBadge component for overall health state
+ * - Auto-refreshes every 3 seconds via setInterval
+ *
+ * Data Source: ElasticsearchService.getSystemHealth() (pure simulation, no real backend).
+ */
 import { Card } from '../components/ui/card';
 import { StatusBadge } from '../components/StatusBadge';
 import { Activity, Cpu, HardDrive, Network, Server, Zap } from 'lucide-react';

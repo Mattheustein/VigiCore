@@ -1,3 +1,20 @@
+/**
+ * NetworkTrafficPage
+ * ==================
+ * Network traffic monitoring page with real-time simulated bandwidth,
+ * protocol distribution, and connection analytics.
+ *
+ * Visualizations:
+ * - Bandwidth Usage — Dual-line chart (inbound/outbound Mbps) with live updates
+ * - Protocol Distribution — Donut chart showing HTTP/HTTPS/SSH/DNS/FTP breakdown
+ * - Active Connections — Real-time count with trend indicator
+ * - Top Talkers — Table of highest-bandwidth internal IPs
+ *
+ * All data is client-side generated using Math.random() and sine-wave patterns
+ * to simulate realistic network telemetry. Updates every 2 seconds.
+ *
+ * No backend connection — this page is entirely UI demonstration.
+ */
 import { Card } from '../components/ui/card';
 import { ArrowDownToLine, ArrowUpFromLine, Network, Activity, Info } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';

@@ -1,3 +1,15 @@
+/**
+ * RiskBadge Component
+ * ===================
+ * Renders a color-coded badge indicating the threat risk level of a security event.
+ * Used throughout the dashboard (AlertsPage, SuspiciousActivityPage, AlertModal)
+ * to provide at-a-glance risk assessment.
+ *
+ * Risk Level → Visual Mapping:
+ * - High:   Red border + red text (danger indicator)
+ * - Medium: Amber border + amber text (warning indicator)
+ * - Low:    Green border + green text (safe indicator)
+ */
 interface RiskBadgeProps {
   level: 'Low' | 'Medium' | 'High';
 }
