@@ -1,5 +1,12 @@
 # VigiCore IDS (Graduation Project)
 
+> [!IMPORTANT]
+> **🌐 Live Dashboard Demo:** [VigiCore on Vercel](https://vigicore-vercel-deployment.vercel.app) *(Update link if different)*
+> 
+> **Evaluation Credentials:**
+> - **Username:** `Admin`
+> - **Password:** `Admin123`
+
 **VigiCore** is a log-based Intrusion Detection System (IDS) designed for local Debian/Linux deployment (such as Kali Linux). It leverages the **ELK Stack** (Filebeat, Logstash, Elasticsearch, Kibana) to collect, process, and visualize system and authentication logs, detecting suspicious activities through defined rule-based logic.
 
 ## Project Overview
