@@ -1,7 +1,8 @@
 # VigiCore IDS (Graduation Project)
 
 > [!IMPORTANT]
-> **🌐 Live Dashboard Demo:** [VigiCore on Vercel](https://vigicore-vercel-deployment.vercel.app) *(Update link if different)*
+> **🌐 Live Dashboard Demo:** [VigiCore on Vercel](https://vigi-core.vercel.app/)
+> **🐙 GitHub Repository:** [Mattheustein/VigiCore](https://github.com/Mattheustein/VigiCore)
 > 
 > **Evaluation Credentials:**
 > - **Username:** `Admin`
